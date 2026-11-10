@@ -1,0 +1,42 @@
+name: Hata bildirimi
+description: Bir şey beklediğin gibi çalışmıyor
+title: "Hata: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Lütfen kişisel veri veya ekran görüntüsünde görünen özel bilgi paylaşma; gerekiyorsa anonimleştir."
+  - type: input
+    attributes:
+      label: "Tarayıcı ve cihaz"
+      description: "Örn. Chrome 130 / Windows 11, Safari 18 / iPhone 15"
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: "Oyun modu"
+      options:
+        - "Kampanya"
+        - "Serbest oyun"
+        - "Menü / arayüz"
+        - "Diğer"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: "Bölüm veya zorluk"
+      description: "Örn. Bölüm 5, Serbest oyun → Zor"
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: "Ne oldu?"
+      description: "Beklediğin ve gerçekleşen davranış."
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: "Nasıl tekrarlanır?"
+      description: "Adım adım."
+    validations:
+      required: true

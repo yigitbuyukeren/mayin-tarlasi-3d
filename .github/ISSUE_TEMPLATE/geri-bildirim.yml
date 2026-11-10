@@ -1,0 +1,35 @@
+name: Geri bildirim / deneme raporu
+description: Oynadın mı? Ne çalıştı, ne çalışmadı? Kısa bir not yeter.
+title: "Geri bildirim: "
+labels: [geri-bildirim]
+body:
+  - type: markdown
+    attributes:
+      value: "Oynadığın için teşekkürler. Lütfen kişisel veri paylaşma."
+  - type: input
+    attributes:
+      label: "Tarayıcı / cihaz"
+      description: "Örn. Firefox 132 / Android"
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: "Oyun modu"
+      options:
+        - "Kampanya"
+        - "Serbest oyun"
+        - "İkisi de"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: "Ne denedin ve sonuç ne oldu?"
+      description: "Kontroller, zorluk, görünüm veya ses hakkında aklında kalanlar."
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: "Önerin var mı?"
+      description: "Hiçbir şey yazmasan da olur."
+    validations:
+      required: false

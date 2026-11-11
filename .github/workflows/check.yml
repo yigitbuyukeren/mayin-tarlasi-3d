@@ -21,3 +21,21 @@ jobs:
         with:
           python-version: '3.12'
       - run: python3 tools/check.py
+      - run: python3 -m pip install -r tools/requirements-test.txt
+      - run: python3 -m playwright install chromium
+      - run: python3 tools/test_browser.py --url http://127.0.0.1:0 --assets android/app/src/main/assets
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - run: ./gradlew :app:compileDebugJavaWithJavac :app:lintDebug --no-daemon
+        working-directory: android

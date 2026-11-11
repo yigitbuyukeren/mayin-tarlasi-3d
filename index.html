@@ -162,6 +162,17 @@
   .keys { display: grid; grid-template-columns: auto 1fr; gap: 7px 14px; font-size: 14px; color: var(--muted); padding: 2px 0 14px; }
   .keys b { color: var(--text); font-weight: 600; white-space: nowrap; }
   .linkbtn { background: none; border: 0; color: var(--muted); font-size: 13px; text-decoration: underline; padding: 6px; margin: 8px auto 0; display: block; }
+  .savebtn { width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 14px; background: rgba(61,220,132,.16); border-color: rgba(61,220,132,.45); font-weight: 600; }
+  .savebtn:hover { background: rgba(61,220,132,.24); }
+  .quality { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .quality b { color: var(--text); font-weight: 600; }
+  .quality button { padding: 5px 10px; font-size: 13px; }
+  .quality button.on { background: var(--accent); color: #2a1a00; border-color: var(--accent); }
+  #zoomCtl { position: fixed; right: calc(10px + var(--sar)); top: 50%; transform: translateY(-50%); z-index: 3;
+    display: flex; flex-direction: column; gap: 6px; }
+  #zoomCtl button { width: 40px; height: 40px; padding: 0; font-size: 19px; border-radius: 50%;
+    display: grid; place-items: center; background: rgba(18,24,40,.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
   /* result card */
   .result { max-width: 380px; text-align: center; }
@@ -191,14 +202,30 @@
     #menuBtn { width: 36px; height: 36px; font-size: 17px; }
     .lvl b { font-size: 14px; } .lvl small { display: none; }
     .heart { font-size: 14px; }
-    #timeChip { display: none; }
+    #timeChip { display: flex; font-size: 13.5px; padding: 0 6px; }
     .levels { grid-template-columns: repeat(4, 1fr); gap: 6px; }
     .lv { min-height: 92px; padding: 8px 2px; } .lv .em { font-size: 21px; } .lv .meta { font-size: 10.5px; }
     .card { padding: 18px; } .logo h1 { font-size: 28px; } .logo .mine { font-size: 38px; }
     #banner b { font-size: 40px; }
+    #zoomCtl { top: 36%; bottom: auto; transform: none; }
   }
-  @media (max-width: 400px) { .chip .ic { font-size: 13px; } .lv .meta { font-size: 9.5px; } .lv .no { font-size: 14px; } }
-  @media (max-width: 330px) { .levels { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 400px) {
+    .chip .ic { font-size: 13px; } .lv .meta { font-size: 9.5px; } .lv .no { font-size: 14px; }
+    .chip { font-size: 13.5px; padding: 0 6px; height: 34px; }
+    #timeChip { font-size: 12.5px; padding: 0 5px; }
+    .heart { font-size: 12px; }
+  }
+  @media (max-width: 330px) {
+    .levels { grid-template-columns: repeat(2, 1fr); }
+    #hudL .lvl { display: none; }
+    #hudL { padding-right: 5px; }
+    .chip { padding: 0 4px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important; scroll-behavior: auto !important; }
+    #banner, #toast, #hint { transition: none; }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -213,7 +240,7 @@
 <div id="hurt"></div>
 
 <div class="hud glass" id="hudL">
-  <button id="menuBtn" title="Menü (Esc)">☰</button>
+  <button id="menuBtn" title="Menü (Esc)" aria-label="Menüyü aç">☰</button>
   <div class="lvl"><b id="lvlName">Bölüm 1</b><small id="lvlSub">Çayır</small></div>
 </div>
 <div class="hud glass" id="hudR">
@@ -233,16 +260,21 @@
 
 <div id="pad">
   <div class="dpad">
-    <button data-dir="up-left" class="diag">◤</button><button data-dir="up">▲</button><button data-dir="up-right" class="diag">◥</button>
-    <button data-dir="left">◀</button><button class="mid" id="padTurn" title="Sadece dön">↻</button><button data-dir="right">▶</button>
-    <button data-dir="down-left" class="diag">◣</button><button data-dir="down">▼</button><button data-dir="down-right" class="diag">◢</button>
+    <button data-dir="up-left" class="diag" aria-label="Sol yukarı yürü">◤</button><button data-dir="up" aria-label="Yukarı yürü">▲</button><button data-dir="up-right" class="diag" aria-label="Sağ yukarı yürü">◥</button>
+    <button data-dir="left" aria-label="Sola yürü">◀</button><button class="mid" id="padTurn" title="Sadece dön" aria-label="Dönüş modu">↻</button><button data-dir="right" aria-label="Sağa yürü">▶</button>
+    <button data-dir="down-left" class="diag" aria-label="Sol aşağı yürü">◣</button><button data-dir="down" aria-label="Aşağı yürü">▼</button><button data-dir="down-right" class="diag" aria-label="Sağ aşağı yürü">◢</button>
   </div>
   <div class="acts">
     <span></span>
-    <button id="padScan">📡<b id="padScanN">3</b><small>Tara</small></button>
-    <button id="padChord">⛏<small>Aç</small></button>
-    <button id="padFlag">🚩<small id="padFlagLbl">Bayrak</small></button>
+    <button id="padScan" aria-label="Dedektörle tara">📡<b id="padScanN">3</b><small>Tara</small></button>
+    <button id="padChord" aria-label="Çevreyi aç">⛏<small>Aç</small></button>
+    <button id="padFlag" aria-label="Bayrak koy veya iniş yap">🚩<small id="padFlagLbl">Bayrak</small></button>
   </div>
+</div>
+
+<div id="zoomCtl">
+  <button id="zoomIn" title="Yakınlaştır" aria-label="Yakınlaştır">+</button>
+  <button id="zoomOut" title="Uzaklaştır" aria-label="Uzaklaştır">−</button>
 </div>
 
 <div class="overlay show" id="start">
@@ -254,12 +286,19 @@
     </div>
     <div class="tabs"><button id="tabCamp" class="on">🗺 Kampanya</button><button id="tabFree">🎲 Serbest Oyun</button></div>
     <div class="levels" id="levels"></div>
+    <button class="savebtn" id="continueBtn" style="display:none" aria-label="Kayıtlı oyuna devam et">📂 Kayıtlı oyuna devam</button>
     <div class="row">
       <button class="primary grow" id="playBtn">▶ Oyna</button>
       <div class="settings">
-        <button id="nightBtn" title="Gece modu (N)">🌙</button>
-        <button id="muteBtn" title="Ses (M)">🔊</button>
+        <button id="nightBtn" title="Gece modu (N)" aria-label="Gece modu">🌙</button>
+        <button id="muteBtn" title="Ses (M)" aria-label="Sesi aç veya kapat">🔊</button>
       </div>
+    </div>
+    <div class="quality" role="group" aria-label="Grafik kalitesi">
+      <b>Kalite</b>
+      <button data-q="low" aria-label="Düşük grafik kalitesi">Düşük</button>
+      <button data-q="medium" aria-label="Orta grafik kalitesi">Orta</button>
+      <button data-q="high" aria-label="Yüksek grafik kalitesi">Yüksek</button>
     </div>
     <details class="how" id="how">
       <summary>❓ Nasıl oynanır</summary>
@@ -285,10 +324,173 @@
     <div class="bigstars" id="msgStars"></div>
     <p id="msgText"></p>
     <div class="stats" id="msgStats"></div>
-    <div class="row"><button class="primary" id="msgBtn1"></button><button id="msgBtn2"></button><button id="msgMenu" title="Menü">☰</button></div>
+    <div class="row"><button class="primary" id="msgBtn1"></button><button id="msgBtn2"></button><button id="msgMenu" title="Menü" aria-label="Menüyü aç">☰</button></div>
   </div>
 </div>
 
+<script id="mt3d-data">
+// Pure, DOM-free save helpers. tools/test_mobile.mjs extracts this block and runs it
+// under Node's built-in test runner; keep it free of browser/Three dependencies.
+(function () {
+  'use strict';
+  const SAVE_VERSION = 1;
+  const SAVE_KEY = 'mt3d-v1-save';
+  const QUALITY_KEY = 'mt3d-v1-quality';
+  const MAX_CELLS = 400;
+  const MAX_SECONDS = 86400;
+  const MODES = ['kampanya', 'kolay', 'orta', 'zor'];
+  const QUALITIES = ['low', 'medium', 'high'];
+  const THEMES = ['meadow', 'desert', 'snow', 'night'];
+  const STAGE_CFG = [
+    { w: 8, d: 8, m: 8, theme: 'meadow' },
+    { w: 10, d: 10, m: 13, theme: 'meadow' },
+    { w: 10, d: 10, m: 15, theme: 'desert' },
+    { w: 12, d: 12, m: 21, theme: 'desert' },
+    { w: 12, d: 12, m: 23, theme: 'snow' },
+    { w: 14, d: 14, m: 30, theme: 'snow' },
+    { w: 12, d: 12, m: 22, theme: 'night' },
+    { w: 16, d: 16, m: 40, theme: 'night' },
+  ];
+  const FREE_CFG = {
+    kolay: { w: 9, d: 9, m: 10, theme: 'meadow' },
+    orta: { w: 12, d: 12, m: 22, theme: 'meadow' },
+    zor: { w: 16, d: 16, m: 40, theme: 'meadow' },
+  };
+
+  const int = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
+  const expectedCfg = (mode, stage) => {
+    if (mode === 'kampanya') return int(stage, 0, STAGE_CFG.length - 1) ? STAGE_CFG[stage] : null;
+    return FREE_CFG[mode] || null;
+  };
+  const inside = (cfg, x, z) => int(x, 0, cfg.w - 1) && int(z, 0, cfg.d - 1);
+
+  function uniqueArray(raw, cells, limit) {
+    if (!Array.isArray(raw) || raw.length > limit) return null;
+    const out = [];
+    const seen = new Set();
+    for (const value of raw) {
+      if (!int(value, 0, cells - 1) || seen.has(value)) return null;
+      seen.add(value);
+      out.push(value);
+    }
+    return out;
+  }
+
+  function safeReachable(cfg, mines, start, cells) {
+    const mine = new Set(mines);
+    const seen = new Set([start]);
+    const queue = [start];
+    while (queue.length) {
+      const i = queue.pop();
+      const x = i % cfg.w, z = Math.floor(i / cfg.w);
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+        if (!dx && !dz) continue;
+        const nx = x + dx, nz = z + dz;
+        if (!inside(cfg, nx, nz)) continue;
+        const ni = nz * cfg.w + nx;
+        if (!mine.has(ni) && !seen.has(ni)) { seen.add(ni); queue.push(ni); }
+      }
+    }
+    return seen.size === cells - mines.length;
+  }
+
+  function normalizeSnapshot(raw) {
+    if (!raw || typeof raw !== 'object' || raw.v !== SAVE_VERSION) return null;
+    if (!MODES.includes(raw.mode)) return null;
+    const stage = raw.stage;
+    if (!int(stage, 0, STAGE_CFG.length - 1)) return null;
+    const expected = expectedCfg(raw.mode, stage);
+    const cfg = raw.cfg;
+    if (!expected || !cfg || typeof cfg !== 'object') return null;
+    if (cfg.w !== expected.w || cfg.d !== expected.d || cfg.m !== expected.m) return null;
+    if (!THEMES.includes(cfg.theme)) return null;
+    if (raw.mode === 'kampanya' && cfg.theme !== expected.theme) return null;
+    const cells = cfg.w * cfg.d;
+    if (!int(cells, 9, MAX_CELLS) || cfg.m < 1 || cfg.m > cells - 9) return null;
+    if (!raw.grid || typeof raw.grid !== 'object') return null;
+    const limit = cells; // any per-cell index array is bounded by the board size
+    const mines = uniqueArray(raw.grid.mines, cells, limit);
+    const revealed = uniqueArray(raw.grid.revealed, cells, limit);
+    const flags = uniqueArray(raw.grid.flags, cells, limit);
+    const craters = uniqueArray(raw.grid.craters, cells, limit);
+    if (!mines || !revealed || !flags || !craters) return null;
+    if (mines.length !== cfg.m) return null;
+
+    const lives = raw.lives, charges = raw.charges, elapsed = raw.elapsed;
+    if (!int(lives, 1, 3) || !int(charges, 0, 3) || !int(elapsed, 0, MAX_SECONDS)) return null;
+    if (craters.length !== 3 - lives) return null;
+
+    const start = raw.start, player = raw.player;
+    if (!start || !inside(cfg, start.x, start.z)) return null;
+    if (!player || !inside(cfg, player.x, player.z)) return null;
+    if (!Array.isArray(player.dir) || player.dir.length !== 2) return null;
+    const [dx, dz] = player.dir;
+    if (!int(dx, -1, 1) || !int(dz, -1, 1) || (!dx && !dz)) return null;
+
+    const mineSet = new Set(mines), revealedSet = new Set(revealed);
+    const flagSet = new Set(flags), craterSet = new Set(craters);
+    // User flags could be wrong, but a flag may never mark an opened or cratered tile.
+    for (const i of flags) if (revealedSet.has(i) || craterSet.has(i)) return null;
+    for (const i of craters) if (revealedSet.has(i) || flagSet.has(i) || !mineSet.has(i)) return null;
+    // Opened/cratered tiles must not be flagged; opened tiles must never be mines.
+    for (const i of revealed) if (mineSet.has(i)) return null;
+    // The starting 3x3 drop zone is always mine-free.
+    for (let z = Math.max(0, start.z - 1); z <= Math.min(cfg.d - 1, start.z + 1); z++)
+      for (let x = Math.max(0, start.x - 1); x <= Math.min(cfg.w - 1, start.x + 1); x++)
+        if (mineSet.has(z * cfg.w + x)) return null;
+    const startIdx = start.z * cfg.w + start.x;
+    if (!revealedSet.has(startIdx)) return null;
+    if (revealed.length >= cells - cfg.m) return null; // a finished board must not be restorable
+    const playerIdx = player.z * cfg.w + player.x;
+    if (mineSet.has(playerIdx) && !craterSet.has(playerIdx)) return null;
+    if (!revealedSet.has(playerIdx) && !craterSet.has(playerIdx)) return null;
+    // Every safe tile stays walkable from the drop zone (8-way movement).
+    if (!safeReachable(cfg, mines, startIdx, cells)) return null;
+
+    const sorted = arr => arr.slice().sort((a, b) => a - b);
+    return {
+      v: SAVE_VERSION,
+      mode: raw.mode,
+      stage,
+      cfg: { w: cfg.w, d: cfg.d, m: cfg.m, theme: cfg.theme },
+      grid: { mines: sorted(mines), revealed: sorted(revealed), flags: sorted(flags), craters: sorted(craters) },
+      start: { x: start.x, z: start.z },
+      player: { x: player.x, z: player.z, dir: [dx, dz] },
+      lives, charges, elapsed,
+    };
+  }
+
+  function makeSnapshot(input) {
+    if (!input || typeof input !== 'object' || input.stable !== true) return null;
+    const { mode, stage, cfg, start, player, lives, charges, elapsed, grid } = input;
+    if (!cfg || !Array.isArray(grid)) return null;
+    const cells = cfg.w * cfg.d;
+    if (!int(cells, 9, MAX_CELLS) || grid.length !== cells) return null;
+    const mines = [], revealed = [], flags = [], craters = [];
+    for (let i = 0; i < grid.length; i++) {
+      const c = grid[i];
+      if (!c || typeof c !== 'object') return null;
+      if (c.mine) mines.push(i);
+      if (c.revealed) revealed.push(i);
+      if (c.flagged) flags.push(i);
+      if (c.crater) craters.push(i);
+    }
+    return normalizeSnapshot({
+      v: SAVE_VERSION, mode, stage,
+      cfg: { w: cfg.w, d: cfg.d, m: cfg.m, theme: cfg.theme },
+      grid: { mines, revealed, flags, craters }, start,
+      player: { x: player && player.x, z: player && player.z, dir: player && player.dir },
+      lives, charges, elapsed,
+    });
+  }
+
+  window.MT3D_DATA = Object.freeze({
+    SAVE_VERSION, SAVE_KEY, QUALITY_KEY, MAX_CELLS, MAX_SECONDS,
+    MODES, QUALITIES, THEMES, STAGE_CFG, FREE_CFG,
+    expectedCfg, safeReachable, normalizeSnapshot, makeSnapshot,
+  });
+})();
+</script>
 <script type="module">
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
@@ -335,10 +537,31 @@ const LIVES = 3, CHARGES = 3;
 const store = {
   get(k, def) { try { const v = localStorage.getItem(k); return v == null ? def : JSON.parse(v); } catch (e) { return def; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} },
 };
-let unlocked = Math.min(store.get('mt3d-v1-unlocked', 0), STAGES.length - 1);
-let starsByStage = store.get('mt3d-v1-stars', {});
+const DATA = window.MT3D_DATA;
+const SAVE_KEY = DATA.SAVE_KEY;
+const savedUnlocked = store.get('mt3d-v1-unlocked', 0);
+let unlocked = Number.isInteger(savedUnlocked) ? Math.max(0, Math.min(savedUnlocked, STAGES.length - 1)) : 0;
+const savedStars = store.get('mt3d-v1-stars', {});
+let starsByStage = Object.fromEntries(Object.entries(savedStars && typeof savedStars === 'object' ? savedStars : {})
+  .filter(([key, value]) => /^(?:[0-7])$/.test(key) && Number.isInteger(value) && value >= 0 && value <= LIVES));
 let stage = unlocked;
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Quality presets actually reduce GPU/CPU cost: DPR, shadow map, bloom and grass density.
+// Defaults: coarse pointers (phones) start low, precise pointers start high.
+const QUALITY = {
+  low:    { dpr: 1,   composerDpr: 1,   shadow: false, shadowSize: 512,  bloom: false, grass: 1200, fx: 0.55 },
+  medium: { dpr: 1.5, composerDpr: 1.25, shadow: true,  shadowSize: 1024, bloom: true,  grass: 2200, fx: 0.8 },
+  high:   { dpr: 2,   composerDpr: 1.5,  shadow: true,  shadowSize: 2048, bloom: true,  grass: 3500, fx: 1 },
+};
+const savedQuality = store.get(DATA.QUALITY_KEY, '');
+let quality = DATA.QUALITIES.includes(savedQuality)
+  ? savedQuality
+  : (matchMedia('(pointer: coarse)').matches ? 'low' : 'high');
+if (!DATA.QUALITIES.includes(savedQuality)) store.set(DATA.QUALITY_KEY, quality);
+const qv = () => QUALITY[quality];
 
 // ================= Audio =================
 let AC = null, master = null, muted = store.get('mt3d-v1-muted', false);
@@ -350,6 +573,7 @@ function ac() {
   if (AC.state === 'suspended') AC.resume();
   return AC;
 }
+function suspendAudio() { try { if (AC && AC.state === 'running') AC.suspend(); } catch (e) {} }
 function tone(freq, dur, type = 'sine', vol = 0.2, when = 0, slideTo = null) {
   if (muted) return;
   try {
@@ -396,10 +620,10 @@ const sfx = {
 
 // ================= Renderer / scene / post =================
 const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-const DPR = Math.min(devicePixelRatio, 2);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: quality !== 'low', powerPreference: 'high-performance' });
+const DPR = Math.min(devicePixelRatio, qv().dpr);
 renderer.setPixelRatio(DPR);
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = qv().shadow;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
@@ -409,17 +633,18 @@ const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 300);
 
 const hemi = new THREE.HemisphereLight(0xdff2ff, 0x4a6b2a, 1.0);
 const sun = new THREE.DirectionalLight(0xfff1d6, 2.6);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.castShadow = qv().shadow;
+sun.shadow.mapSize.set(qv().shadowSize, qv().shadowSize);
 Object.assign(sun.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15, near: 1, far: 50 });
 sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
 const fill = new THREE.DirectionalLight(0xbfd8ff, 0.5); fill.position.set(-8, 6, -6);
 scene.add(hemi, sun, sun.target, fill);
 
 const composer = new EffectComposer(renderer);
-composer.setPixelRatio(Math.min(DPR, 1.5));
+composer.setPixelRatio(Math.min(devicePixelRatio, qv().composerDpr));
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.25, 0.5, 0.92);
+bloom.enabled = qv().bloom;
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 const vignette = new ShaderPass({
@@ -439,6 +664,21 @@ function resize() {
 }
 addEventListener('resize', resize);
 resize();
+
+function applyQuality() {
+  const q = qv();
+  renderer.setPixelRatio(Math.min(devicePixelRatio, q.dpr));
+  renderer.shadowMap.enabled = q.shadow;
+  renderer.shadowMap.needsUpdate = true;
+  sun.castShadow = q.shadow;
+  sun.shadow.mapSize.set(q.shadowSize, q.shadowSize);
+  if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  composer.setPixelRatio(Math.min(devicePixelRatio, q.composerDpr));
+  bloom.enabled = q.bloom;
+  renderer.setSize(innerWidth, innerHeight, false);
+  composer.setSize(innerWidth, innerHeight);
+  if (typeof updateQualityUi === 'function') updateQualityUi();
+}
 
 // ---------- Sky dome ----------
 const skyMat = new THREE.ShaderMaterial({
@@ -762,7 +1002,7 @@ function decorate(theme, w, d) {
 
   // instanced swaying grass
   if (theme.grass) {
-    const count = theme.grassCount || 3500;
+    const count = Math.min(theme.grassCount || 3500, qv().grass);
     const im = new THREE.InstancedMesh(DG.blade, grassMat, count);
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color();
     let n = 0;
@@ -858,6 +1098,8 @@ const zone = new THREE.Mesh(GEO.unit, zoneMat); zone.rotation.x = -Math.PI / 2; 
 player.add(chute);
 let cfg, theme, grid, state, flags, craters, revealed, lives, charges, startTime = 0, elapsed = 0, timerId, P, gen = 0;
 let fx = [], pops = [], shake = 0, zoom = 1, nightToggle = store.get('mt3d-v1-night', false), night = false;
+let startPos = null, lastStable = null, saveT = null, scanTimer = null, scanResolve = null, padHold = null;
+let bootPreview = true;
 
 const cellAt = (x, z) => (x >= 0 && z >= 0 && x < cfg.w && z < cfg.d) ? grid[z * cfg.w + x] : null;
 const wx = x => x - (cfg.w - 1) / 2, wz = z => z - (cfg.d - 1) / 2;
@@ -899,6 +1141,80 @@ function applyTheme(t) {
 const THEME_EMOJI = { meadow: '🌿', desert: '🏜', snow: '❄️', night: '🌙' };
 const FREE_INFO = { kolay: ['🙂', 'Kolay'], orta: ['😬', 'Orta'], zor: ['💀', 'Zor'] };
 function starHtml(n) { return '★'.repeat(n) + '<span class="off">' + '★'.repeat(3 - n) + '</span>'; }
+
+// ---------- Saved field (versioned, validated) ----------
+// Only stable, walkable boards are persisted. Mid-step/mid-scan/menu/drop/place states are
+// rejected by the pure validator; persistence then falls back to the last stable snapshot.
+function readSave() {
+  let raw = null;
+  try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { return null; }
+  if (raw == null) return null;
+  if (raw.length > 32768) { store.del(SAVE_KEY); return null; }
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch (e) { store.del(SAVE_KEY); return null; }
+  const snap = DATA.normalizeSnapshot(parsed);
+  if (!snap) store.del(SAVE_KEY);
+  return snap;
+}
+function updateContinueUi() {
+  const btn = $('continueBtn');
+  if (!btn) return;
+  const snap = readSave();
+  btn.style.display = snap ? '' : 'none';
+  if (snap) {
+    const label = snap.mode === 'kampanya' ? `Bölüm ${snap.stage + 1}` : `Serbest · ${FREE_INFO[snap.mode]?.[1] || snap.mode}`;
+    btn.title = `${label} · ${fmtTime(snap.elapsed)} · ${snap.lives} can`;
+  }
+}
+function clearSave() {
+  if (saveT) { clearTimeout(saveT); saveT = null; }
+  lastStable = null;
+  store.del(SAVE_KEY);
+  updateContinueUi();
+}
+function currentElapsed() {
+  if (!startTime) return elapsed;
+  return Math.max(elapsed, Math.floor(((pausedAt || performance.now()) - startTime) / 1000));
+}
+function makeCurrentSnapshot() {
+  if (!cfg || !grid || over() || state !== 'play') return null;
+  if (P.dead || P.moving || P.stun > 0 || P.scan > 0 || !startPos) return null;
+  return DATA.makeSnapshot({
+    stable: true, mode, stage,
+    cfg: { w: cfg.w, d: cfg.d, m: cfg.m, theme: cfg.theme },
+    start: startPos,
+    player: { x: P.x, z: P.z, dir: [P.dir[0], P.dir[1]] },
+    lives, charges, elapsed: currentElapsed(), grid,
+  });
+}
+function captureStable() {
+  const snap = makeCurrentSnapshot();
+  if (snap) lastStable = snap;
+  return snap;
+}
+function saveNow() {
+  if (over()) return false;
+  const snap = captureStable() || lastStable;
+  if (!snap) return false;
+  lastStable = snap;
+  store.set(SAVE_KEY, snap);
+  updateContinueUi();
+  return true;
+}
+function scheduleSave(delay = 300) {
+  if (over()) return;
+  const stable = captureStable();
+  if (stable) { store.set(SAVE_KEY, stable); updateContinueUi(); }
+  if (saveT) clearTimeout(saveT);
+  saveT = setTimeout(() => {
+    saveT = null;
+    if (over()) return;
+    // Autosave never falls back: a transient (mid-step/mid-scan) state waits for the next
+    // stable boundary instead of silently writing an older board.
+    const snap = makeCurrentSnapshot();
+    if (snap) { lastStable = snap; store.set(SAVE_KEY, snap); updateContinueUi(); }
+  }, delay);
+}
 function fillStageSelect() {
   const box = $('levels'); box.innerHTML = '';
   const camp = menuTab === 'kampanya';
@@ -918,15 +1234,18 @@ function fillStageSelect() {
     b.onclick = () => {
       if (it.locked) { sfx.error(); bump(b, 'shake'); return; }
       ac();
+      const prevMode = mode, prevStage = stage;
       if (camp) { mode = 'kampanya'; stage = it.key; } else mode = it.key;
       store.set('mt3d-v1-mode', mode);
-      startFromMenu(true);
+      if (!startFromMenu(true)) { mode = prevMode; stage = prevStage; store.set('mt3d-v1-mode', mode); fillStageSelect(); }
     };
     box.appendChild(b);
   }
   updatePlayBtn();
+  updateContinueUi();
 }
 function gameInProgress() { return cfg && !over() && (state === 'play' || state === 'ready' || state === 'place'); }
+function hasSavedGame() { return !!readSave(); }
 function updatePlayBtn() {
   const pb = $('playBtn');
   if (gameInProgress() && $('start').dataset.paused) pb.textContent = '▶ Devam et';
@@ -934,11 +1253,24 @@ function updatePlayBtn() {
   else pb.textContent = `▶ Oyna · ${FREE_INFO[mode][1]}`;
   $('resetBtn').style.display = (unlocked > 0 || Object.keys(starsByStage).length) ? '' : 'none';
 }
-function openMenu() {
-  if ($('start').classList.contains('show') || $('msg').classList.contains('show')) return;
+function clearInputState() {
+  releasePadHold();
+  held.length = 0; pending = null; shiftDown = false;
+  if (typeof canvasPointers !== 'undefined') canvasPointers.clear();
+  pinch = null; pinchUsed = false;
+}
+function pauseGameplay() {
   if (state === 'play' && !pausedAt) pausedAt = performance.now();
+  clearInputState();
+  flushPendingScan();       // a paid scan resolves now, so charge and board never disagree
+  suspendAudio();
+  saveNow();
+}
+function openMenu() {
+  if ($('start').classList.contains('show')) { pauseGameplay(); return; }
+  if ($('msg').classList.contains('show')) return;
+  pauseGameplay();
   $('start').dataset.paused = cfg ? '1' : '';
-  held.length = 0; pending = null;
   menuTab = mode === 'kampanya' ? 'kampanya' : 'serbest';
   fillStageSelect();
   $('hint').classList.remove('show');
@@ -947,21 +1279,49 @@ function openMenu() {
 function closeMenu() {
   document.activeElement?.blur?.();
   $('start').classList.remove('show');
+  delete $('start').dataset.paused;
   if (pausedAt) { startTime += performance.now() - pausedAt; pausedAt = 0; }
   if (state === 'place') showHint(true);
+  else scheduleSave(600);
 }
 function startFromMenu(fresh) {
   ac(); document.activeElement?.blur?.();
   const resume = !fresh && gameInProgress() && $('start').dataset.paused;
+  if (resume) {
+    $('start').classList.remove('show');
+    closeMenu();
+    return true;
+  }
+  if (hasSavedGame() && !confirm('Kayıtlı oyun silinip yeni bir oyun başlatılsın mı?')) {
+    updatePlayBtn();
+    return false;
+  }
   $('start').classList.remove('show'); $('msg').classList.remove('show');
-  if (resume) { closeMenu(); return; }
   pausedAt = 0; delete $('start').dataset.paused;
+  clearSave();
   newGame();
+  return true;
+}
+function continueSavedGame() {
+  const snap = readSave();
+  if (!snap) { toast('Kayıtlı oyun bulunamadı', 'bad'); updateContinueUi(); return; }
+  ac(); document.activeElement?.blur?.();
+  mode = snap.mode; stage = snap.stage;
+  store.set('mt3d-v1-mode', mode);
+  menuTab = mode === 'kampanya' ? 'kampanya' : 'serbest';
+  pausedAt = 0; delete $('start').dataset.paused;
+  $('start').classList.remove('show'); $('msg').classList.remove('show');
+  newGame();
+  applyRestoredState(snap);
+  sfx.safe();
 }
 
 function newGame() {
   gen++;
-  pending = null; held.length = 0; // don't carry a key press from the menu/previous game into the new one
+  if (!bootPreview) clearSave();
+  if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; scanResolve = null; }
+  pending = null; held.length = 0; padHold = null; // don't carry a key press from the menu/previous game into the new one
+  startPos = null; lastStable = null;
   const urlTheme = new URLSearchParams(location.search).get('tema');
   cfg = isCampaign() ? { ...STAGES[stage] } : { ...FREE[mode], theme: THEMES[urlTheme] ? urlTheme : 'meadow' };
   pausedAt = 0;
@@ -1008,6 +1368,58 @@ function newGame() {
   else banner('Serbest Oyun', `${cfg.w}×${cfg.d} · ${cfg.m} mayın`);
 }
 
+// Apply a validated snapshot on top of the freshly built board. newGame() already created
+// the tessellation/theme, so this only repaints cells, restores counters and the player.
+function applyRestoredState(s) {
+  startPos = { x: s.start.x, z: s.start.z };
+  if (THEMES[s.cfg.theme] && s.cfg.theme !== cfg.theme) {
+    cfg.theme = s.cfg.theme;
+    decorate(THEMES[s.cfg.theme], cfg.w, cfg.d);
+    applyTheme(THEMES[s.cfg.theme]);
+    $('lvlSub').textContent = `${THEMES[s.cfg.theme].name} · ${cfg.w}×${cfg.d}`;
+  }
+  const mineSet = new Set(s.grid.mines);
+  for (const c of grid) {
+    c.mine = mineSet.has(c.z * cfg.w + c.x);
+    c.revealed = false; c.flagged = false; c.crater = false; c.flagObj = null;
+    c.tile.geometry = GEO.hid; c.tile.material = MAT.hid[c.v];
+    c.tile.position.y = HID_Y / 2;
+  }
+  for (const c of grid) c.n = c.nb.filter(o => o.mine).length;
+  revealed = 0; flags = 0; craters = 0;
+  for (const i of s.grid.revealed) { const c = grid[i]; c.revealed = true; paintRevealed(c, false); revealed++; }
+  for (const i of s.grid.craters) {
+    const c = grid[i]; c.crater = true; craters++;
+    c.tile.geometry = GEO.rev; c.tile.material = MAT.crater; c.tile.position.y = REV_Y / 2;
+    addScorch(wx(c.x), wz(c.z));
+  }
+  for (const i of s.grid.flags) {
+    const c = grid[i]; c.flagged = true; flags++;
+    c.flagObj = makeFlag(); c.flagObj.position.set(wx(c.x), HID_Y, wz(c.z));
+    c.flagObj.scale.setScalar(1); field.add(c.flagObj);
+  }
+  lives = s.lives; charges = s.charges; elapsed = s.elapsed;
+  state = 'play';
+  P.dead = false; P.moving = false; P.stun = 0; P.scan = 0; P.dance = 0; P.phase = 0;
+  P.x = P.px = s.player.x; P.z = P.pz = s.player.z; P.dir = [s.player.dir[0], s.player.dir[1]];
+  P.yaw = Math.atan2(P.dir[0], P.dir[1]);
+  P.from.set(wx(P.x), REV_Y, wz(P.z)); P.to.copy(P.from);
+  player.position.set(wx(P.x), REV_Y, wz(P.z));
+  player.rotation.y = P.yaw;
+  player.userData.body.rotation.set(0, 0, 0); player.userData.body.position.set(0, 0, 0);
+  chute.visible = false;
+  ui.time.textContent = fmtTime(elapsed);
+  startTime = performance.now() - elapsed * 1000;
+  clearInterval(timerId); timerId = setInterval(tickTimer, 250);
+  lastHud = {}; $('padFlagLbl').textContent = 'Bayrak';
+  updateHud(); updateProgress(); showHint(false);
+  camera.position.set(wx(P.x), 7.2 * zoom, wz(P.z) + 6.2 * zoom);
+  lookCur.set(wx(P.x), 0.4, wz(P.z));
+  lastStable = s;
+  store.set(SAVE_KEY, s); updateContinueUi();
+  banner('Kayıtlı oyun', `${s.mode === 'kampanya' ? `Bölüm ${s.stage + 1}` : 'Serbest'} · ${fmtTime(s.elapsed)}`);
+}
+
 function moveSel([dx, dz]) {
   sel.x = Math.max(0, Math.min(cfg.w - 1, sel.x + dx));
   sel.z = Math.max(0, Math.min(cfg.d - 1, sel.z + dz));
@@ -1016,6 +1428,8 @@ function moveSel([dx, dz]) {
 function confirmDrop() {
   if (state !== 'place' || $('start').classList.contains('show')) return;
   const c = cellAt(sel.x, sel.z);
+  if (!c) return;
+  startPos = { x: c.x, z: c.z };
   placeMines(c);
   state = 'drop';
   P.x = P.px = c.x; P.z = P.pz = c.z; P.vy = -0.5; P.dir = [0, -1];
@@ -1035,6 +1449,7 @@ function land() {
   shake = 0.15;
   startTimerIfNeeded();
   checkWin();
+  scheduleSave(400);
 }
 let hintT;
 function showHint(on) {
@@ -1068,18 +1483,26 @@ function placeMines(safe) {
   for (const c of grid) c.n = c.nb.filter(o => o.mine).length;
 }
 
-function openTile(c, delay = 0) {
-  c.revealed = true; revealed++; updateProgress();
+function paintRevealed(c, animate = true, delay = 0) {
   c.tile.geometry = GEO.rev; c.tile.material = MAT.rev[c.v];
   c.tile.position.y = REV_Y / 2;
-  pops.push({ obj: c.tile, t: -delay, kind: 'tile' });
+  if (animate) pops.push({ obj: c.tile, t: -delay, kind: 'tile' });
   if (c.n > 0) {
     const d = new THREE.Mesh(GEO.plane, NUM_MATS[c.n]);
     d.rotation.x = -Math.PI / 2; d.position.set(wx(c.x), REV_Y + 0.006, wz(c.z)); d.renderOrder = 1;
-    d.scale.setScalar(0.001);
+    d.scale.setScalar(animate ? 0.001 : 1);
     field.add(d);
-    pops.push({ obj: d, t: -delay - 0.05, kind: 'num' });
+    if (animate) pops.push({ obj: d, t: -delay - 0.05, kind: 'num' });
   }
+}
+function addScorch(x, z) {
+  const sc = new THREE.Mesh(GEO.unit, scorchMat);
+  sc.rotation.x = -Math.PI / 2; sc.scale.setScalar(1.8);
+  sc.position.set(x, REV_Y + 0.004, z); sc.renderOrder = 1; field.add(sc);
+}
+function openTile(c, delay = 0) {
+  c.revealed = true; revealed++; updateProgress();
+  paintRevealed(c, true, delay);
 }
 function flood(start) {
   const st = [start]; let count = 0;
@@ -1092,10 +1515,15 @@ function flood(start) {
   return count;
 }
 
+function tickTimer() {
+  if (pausedAt) return;
+  elapsed = Math.floor((performance.now() - startTime) / 1000);
+  ui.time.textContent = fmtTime(elapsed);
+}
 function startTimerIfNeeded() {
   if (state !== 'ready') return;
   state = 'play'; startTime = performance.now();
-  timerId = setInterval(() => { if (pausedAt) return; elapsed = Math.floor((performance.now() - startTime) / 1000); ui.time.textContent = fmtTime(elapsed); }, 250);
+  clearInterval(timerId); timerId = setInterval(tickTimer, 250);
 }
 let lastHud = {};
 function updateHud() {
@@ -1150,10 +1578,11 @@ function tryMove([dx, dz], fresh, turnOnly) {
 function arrive() {
   const c = cellAt(P.x, P.z);
   sfx.step(); dust(player.position);
-  if (c.revealed || c.crater) return;
+  if (c.revealed || c.crater) { scheduleSave(); return; }
   if (c.mine) return hitMine(c, true);
   const n = flood(c);
   n > 1 ? sfx.flood() : sfx.pop();
+  scheduleSave();
   checkWin();
 }
 
@@ -1170,6 +1599,7 @@ function toggleFlag() {
   setFlag(c, !c.flagged);
   c.flagged ? sfx.flag() : sfx.unflag();
   updateHud();
+  scheduleSave();
 }
 
 function chord() {
@@ -1184,9 +1614,19 @@ function chord() {
     opened += flood(o);
   }
   if (opened) sfx.flood();
+  scheduleSave();
   checkWin();
 }
 
+function flushPendingScan() {
+  if (!scanResolve && !scanTimer) return false;
+  P.scan = 0;
+  const resolve = scanResolve;
+  if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
+  scanResolve = null;
+  if (resolve) resolve();
+  return true;
+}
 function scan(instant = false) {
   if (busy()) return;
   const c = cellAt(P.x + P.dir[0], P.z + P.dir[1]);
@@ -1198,7 +1638,10 @@ function scan(instant = false) {
   ringWave(pos, '#7cf');
   const led = player.userData.led.material.color;
   const resolve = () => {
+    if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
+    scanResolve = null;
     if (myGen !== gen || over()) return;
+    P.scan = 0;
     if (c.mine) {
       sfx.mine(); flash(pos, '#ff3b30'); setFlag(c, true); toast('⚠️ Mayın tespit edildi!', 'bad');
       led.set('#f33').multiplyScalar(3);
@@ -1206,18 +1649,20 @@ function scan(instant = false) {
       sfx.safe(); flash(pos, '#3ddc84'); if (c.flagged) setFlag(c, false); flood(c); toast('✅ Temiz', 'good');
       led.set('#3f6').multiplyScalar(3);
     }
-    setTimeout(() => led.set('#7cf').multiplyScalar(2.5), 900);
-    updateHud(); checkWin();
+    setTimeout(() => { if (myGen === gen) led.set('#7cf').multiplyScalar(2.5); }, 900);
+    updateHud();
+    scheduleSave(1000);
+    checkWin();
   };
-  if (instant) resolve(); else setTimeout(resolve, 550);
+  scanResolve = resolve;
+  if (instant) resolve(); else scanTimer = setTimeout(resolve, 550);
 }
 
 function hitMine(c, stepped) {
   c.crater = true; craters++;
   if (c.flagged) setFlag(c, false);
   c.tile.geometry = GEO.rev; c.tile.material = MAT.crater; c.tile.position.y = REV_Y / 2;
-  const sc = new THREE.Mesh(GEO.unit, scorchMat); sc.rotation.x = -Math.PI / 2; sc.scale.setScalar(1.8);
-  sc.position.set(wx(c.x), REV_Y + 0.004, wz(c.z)); sc.renderOrder = 1; field.add(sc);
+  addScorch(wx(c.x), wz(c.z));
   const at = new THREE.Vector3(wx(c.x), 0.35, wz(c.z));
   explosion(at);
   sfx.boom(); shake = 0.6;
@@ -1230,38 +1675,62 @@ function hitMine(c, stepped) {
     P.from.copy(player.position); P.to.set(wx(P.px), REV_Y, wz(P.pz));
     P.x = P.px; P.z = P.pz;
   } else P.stun = 0.5;
+  // Commit the life loss immediately as a stable snapshot at the safe return tile. If the app
+  // closes during the animation this save is used; the animation never re-exposes the old life.
+  const wasMoving = P.moving, wasStun = P.stun, wasScan = P.scan;
+  P.moving = false; P.stun = 0; P.scan = 0;
+  const snap = makeCurrentSnapshot();
+  P.moving = wasMoving; P.stun = wasStun; P.scan = wasScan;
+  if (snap) { lastStable = snap; store.set(SAVE_KEY, snap); updateContinueUi(); }
+  else store.del(SAVE_KEY);
+  scheduleSave(1200);
 }
 
 function checkWin() {
   if (over() || revealed !== grid.length - cfg.m) return;
   state = 'won'; clearInterval(timerId);
+  const myGen = gen;
+  const t = Math.max(0, Math.floor(((pausedAt || performance.now()) - startTime) / 1000));
+  const stars = lives;
+  // Progress is committed synchronously so closing the app during the result delay cannot lose it.
+  clearSave();
   for (const c of grid) if (c.mine && !c.crater && !c.flagged) setFlag(c, true);
   updateHud();
-  P.dance = 2.5; sfx.win(); confetti();
-  const t = Math.floor((performance.now() - startTime) / 1000);
-  const stars = lives;
+  P.dance = reduceMotion ? 0.8 : 2.5; sfx.win(); confetti();
+  let last = false;
+  let freeBest = null, freeRec = false, freeHadBest = false;
+  if (isCampaign()) {
+    starsByStage[stage] = Math.max(starsByStage[stage] || 0, stars); store.set('mt3d-v1-stars', starsByStage);
+    last = stage === STAGES.length - 1;
+    if (!last && stage + 1 > unlocked) { unlocked = stage + 1; store.set('mt3d-v1-unlocked', unlocked); }
+  } else {
+    const k = 'mt3d-v1-best-' + mode;
+    const best = store.get(k, null);
+    freeHadBest = best != null;
+    freeRec = !freeHadBest || t < best;
+    freeBest = freeRec ? t : best;
+    if (freeRec) store.set(k, t);
+  }
   setTimeout(() => {
+    if (myGen !== gen) return;
+    $('start').classList.remove('show');
     if (isCampaign()) {
-      starsByStage[stage] = Math.max(starsByStage[stage] || 0, stars); store.set('mt3d-v1-stars', starsByStage);
-      const last = stage === STAGES.length - 1;
-      if (!last && stage + 1 > unlocked) { unlocked = stage + 1; store.set('mt3d-v1-unlocked', unlocked); }
       const stats = [[fmtTime(t), 'Süre'], [`${lives}/${LIVES}`, 'Can'], [`${CHARGES - charges}`, 'Dedektör']];
       showMsg(last ? 'Kampanya tamamlandı! 🏆' : `Bölüm ${stage + 1} tamam! 🎉`,
         last ? 'Bütün tarlaları temizledin!' : (stars === 3 ? 'Hiç hasar almadan, kusursuz!' : 'Tarla temiz. 3 yıldız için hiç mayına basma.'), stars,
         last ? ['Tekrar oyna', newGame] : ['Sonraki bölüm ▶', () => { stage++; newGame(); }],
         last ? null : ['↻ Tekrar', newGame], stats);
     } else {
-      const k = 'mt3d-v1-best-' + mode;
-      const best = store.get(k, null), rec = !best || t < best;
-      if (rec) store.set(k, t);
-      showMsg('Kazandın! 🎉', rec && best ? 'Yeni rekor!' : 'Tarla temizlendi.', stars, ['Tekrar oyna', newGame], null,
-        [[fmtTime(t), 'Süre'], [fmtTime(Math.min(t, best || t)), rec ? '🏆 Rekor' : 'En iyi', rec], [`${lives}/${LIVES}`, 'Can']]);
+      showMsg('Kazandın! 🎉', freeRec && freeHadBest ? 'Yeni rekor!' : 'Tarla temizlendi.', stars, ['Tekrar oyna', newGame], null,
+        [[fmtTime(t), 'Süre'], [fmtTime(freeBest), freeRec ? '🏆 Rekor' : 'En iyi', freeRec], [`${lives}/${LIVES}`, 'Can']]);
     }
-  }, 1800);
+  }, reduceMotion ? 400 : 1800);
 }
 
 function gameOver(hit) {
   state = 'lost'; clearInterval(timerId);
+  const myGen = gen;
+  clearSave();
   let i = 0;
   for (const c of grid) {
     if (c.mine && !c.flagged && !c.crater) {
@@ -1272,8 +1741,12 @@ function gameOver(hit) {
   const m = makeMine(true); m.position.set(wx(hit.x), REV_Y + 0.12, wz(hit.z)); m.scale.setScalar(0.7); field.add(m);
   P.dead = true; P.vy = 5; P.moving = false;
   sfx.lose();
-  setTimeout(() => showMsg('Görev başarısız 💥', 'Bütün canlarını kaybettin. Bir daha dene!', 0, ['↻ Tekrar dene', newGame], null,
-    [[`${Math.round(revealed / (grid.length - cfg.m) * 100)}%`, 'Açılan'], [fmtTime(elapsed), 'Süre'], [`${flags}`, 'Bayrak']]), 1500);
+  setTimeout(() => {
+    if (myGen !== gen) return;
+    $('start').classList.remove('show');
+    showMsg('Görev başarısız 💥', 'Bütün canlarını kaybettin. Bir daha dene!', 0, ['↻ Tekrar dene', newGame], null,
+      [[`${Math.round(revealed / (grid.length - cfg.m) * 100)}%`, 'Açılan'], [fmtTime(elapsed), 'Süre'], [`${flags}`, 'Bayrak']]);
+  }, reduceMotion ? 350 : 1500);
 }
 
 function showMsg(title, text, stars, b1, b2, stats = []) {
@@ -1369,6 +1842,8 @@ addEventListener('keydown', e => {
     if (e.code === 'Enter' || e.code === 'NumpadEnter') { if (document.activeElement?.tagName !== 'BUTTON' || document.activeElement === document.body) { e.preventDefault(); $('playBtn').click(); } }
     return;
   }
+  if (e.code === 'Equal' || e.code === 'NumpadAdd') { e.preventDefault(); setZoom(zoom * 0.9); return; }
+  if (e.code === 'Minus' || e.code === 'NumpadSubtract') { e.preventDefault(); setZoom(zoom * 1.1); return; }
   if (e.key === 'Shift') { shiftDown = true; return; }
   if (state === 'place' && !$('start').classList.contains('show')) {
     if (KEYVEC[e.code]) { e.preventDefault(); moveSel(KEYVEC[e.code]); return; }
@@ -1396,21 +1871,39 @@ addEventListener('keyup', e => {
   if (e.key === 'Shift') shiftDown = false;
   if (held.includes(e.code)) held.splice(held.indexOf(e.code), 1);
 });
-addEventListener('blur', () => { held.length = 0; shiftDown = false; });
-addEventListener('wheel', e => { zoom = Math.min(1.8, Math.max(0.55, zoom * (e.deltaY > 0 ? 1.08 : 0.92))); }, { passive: true });
+addEventListener('blur', () => { clearInputState(); });
+function setZoom(z) { zoom = Math.min(1.8, Math.max(0.55, z)); }
+addEventListener('wheel', e => { setZoom(zoom * (e.deltaY > 0 ? 1.08 : 0.92)); }, { passive: true });
 
 let padTurn = false;
+const PAD_REPEAT_MS = 140;
 document.querySelectorAll('#pad [data-dir]').forEach(b =>
   b.addEventListener('pointerdown', e => {
     e.preventDefault(); ac();
     const v = b.dataset.dir.split('-').reduce((a, n) => [a[0] + DIRS[n][0], a[1] + DIRS[n][1]], [0, 0]);
-    if (state === 'place') moveSel(v); else pending = { vec: v, turn: padTurn, at: 0 };
+    if (state === 'place') { moveSel(v); return; }
+    try { b.setPointerCapture(e.pointerId); } catch (err) {}
+    releasePadHold();
+    pending = { vec: v, turn: padTurn, at: performance.now() - COMBO_MS, padId: e.pointerId };
+    padHold = { id: e.pointerId, vec: v, turn: padTurn, nextAt: performance.now() + PAD_REPEAT_MS, btn: b };
+    b.classList.add('on');
   }));
+function releasePadHold(e) {
+  if (!padHold || (e && padHold.id !== e.pointerId)) return;
+  if (e && e.type === 'pointercancel' && pending?.padId === e.pointerId) pending = null;
+  padHold.btn?.classList.remove('on');
+  padHold = null;
+}
+document.addEventListener('pointerup', releasePadHold);
+document.addEventListener('pointercancel', releasePadHold);
+document.addEventListener('lostpointercapture', releasePadHold, true);
 $('padTurn').onclick = () => { padTurn = !padTurn; $('padTurn').classList.toggle('on', padTurn); };
 $('padFlag').onclick = () => state === 'place' ? confirmDrop() : toggleFlag();
 
-// choose the drop zone with the mouse / a tap
+// choose the drop zone with the mouse / a tap; two fingers pinch to zoom
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const canvasPointers = new Map();
+let pinch = null, pinchUsed = false;
 function pickTile(e) {
   const r = canvas.getBoundingClientRect();
   ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
@@ -1418,15 +1911,43 @@ function pickTile(e) {
   const hit = ray.intersectObjects(grid.map(c => c.tile), false)[0];
   return hit ? grid.find(c => c.tile === hit.object) : null;
 }
+canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'touch') return;
+  canvasPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (canvasPointers.size === 2) {
+    const [a, b] = [...canvasPointers.values()];
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) };
+    pinchUsed = true;
+  }
+});
 canvas.addEventListener('pointermove', e => {
-  if (state !== 'place') return;
+  if (canvasPointers.has(e.pointerId)) {
+    canvasPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (canvasPointers.size >= 2 && pinch) {
+      const [a, b] = [...canvasPointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (d > 0 && pinch.d > 0) setZoom(zoom * (pinch.d / d));
+      pinch.d = d;
+      return;
+    }
+  }
+  if (state !== 'place' || pinchUsed || canvasPointers.size > 1) return;
   const c = pickTile(e); if (c) sel = { x: c.x, z: c.z };
   canvas.style.cursor = c ? 'pointer' : '';
 });
 canvas.addEventListener('pointerup', e => {
-  if (state !== 'place') return;
+  const wasPinch = pinchUsed;
+  canvasPointers.delete(e.pointerId);
+  if (canvasPointers.size < 2) pinch = null;
+  if (canvasPointers.size === 0) pinchUsed = false;
+  if (state !== 'place' || wasPinch || canvasPointers.size > 0) return;
   const c = pickTile(e); if (!c) return;
   ac(); sel = { x: c.x, z: c.z }; canvas.style.cursor = ''; confirmDrop();
+});
+canvas.addEventListener('pointercancel', e => {
+  canvasPointers.delete(e.pointerId);
+  if (canvasPointers.size < 2) pinch = null;
+  if (canvasPointers.size === 0) pinchUsed = false;
 });
 $('padChord').onclick = chord;
 $('padScan').onclick = scan;
@@ -1442,17 +1963,38 @@ function toggleMute() {
 }
 ui.muteBtn.textContent = muted ? '🔇' : '🔊';
 const blurAfter = fn => e => { e.currentTarget.blur(); fn(); };
+function updateQualityUi() {
+  document.querySelectorAll('.quality [data-q]').forEach(b => {
+    const on = b.dataset.q === quality;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+function setQuality(q) {
+  if (!DATA.QUALITIES.includes(q)) return;
+  quality = q; store.set(DATA.QUALITY_KEY, q);
+  applyQuality();
+  toast(`Kalite: ${q === 'low' ? 'Düşük' : q === 'medium' ? 'Orta' : 'Yüksek'}`);
+}
+document.querySelectorAll('.quality [data-q]').forEach(b => { b.onclick = blurAfter(() => setQuality(b.dataset.q)); });
+updateQualityUi();
 ui.nightBtn.onclick = blurAfter(toggleNight);
 ui.muteBtn.onclick = blurAfter(toggleMute);
 $('menuBtn').onclick = blurAfter(openMenu);
 $('playBtn').onclick = () => startFromMenu(false);
+$('continueBtn').onclick = continueSavedGame;
+$('zoomIn').onclick = blurAfter(() => setZoom(zoom * 0.9));
+$('zoomOut').onclick = blurAfter(() => setZoom(zoom * 1.1));
 $('tabCamp').onclick = () => { menuTab = 'kampanya'; fillStageSelect(); };
 $('tabFree').onclick = () => { menuTab = 'serbest'; fillStageSelect(); };
 $('msgMenu').onclick = () => { $('msg').classList.remove('show'); delete $('start').dataset.paused; openMenu(); };
 $('resetBtn').onclick = () => {
   if (!confirm('Bütün bölüm ilerlemesi ve yıldızlar silinsin mi?')) return;
+  clearSave();
   unlocked = 0; stage = 0; starsByStage = {}; store.set('mt3d-v1-unlocked', 0); store.set('mt3d-v1-stars', {});
   mode = 'kampanya'; store.set('mt3d-v1-mode', mode); menuTab = 'kampanya';
+  newGame();
+  delete $('start').dataset.paused;
   fillStageSelect();
 };
 
@@ -1463,35 +2005,41 @@ const easeBack = t => { const c = 1.7; return 1 + (c + 1) * Math.pow(t - 1, 3) +
 function loop() {
   const dt = Math.min(clock.getDelta(), 0.05), now = clock.elapsedTime;
   const ud = player.userData;
+  const menuOpen = $('start').classList.contains('show');
   grassTime.value = now;
 
-  if (P.stun > 0) P.stun -= dt;
-  if (P.scan > 0) P.scan -= dt;
-  if (!P.moving && !P.dead && P.stun <= 0 && P.scan <= 0) {
-    if (pending) {
-      if (performance.now() - pending.at >= COMBO_MS) {
-        tryMove(pending.vec || vecOf(pending.codes), true, pending.turn); pending = null;
-      }
-    } else if (held.length && !shiftDown) tryMove(vecOf(held), false, false);
-  }
+  if (!menuOpen) {
+    if (P.stun > 0) P.stun -= dt;
+    if (P.scan > 0) P.scan -= dt;
+    if (!P.moving && !P.dead && P.stun <= 0 && P.scan <= 0) {
+      if (pending) {
+        if (performance.now() - pending.at >= COMBO_MS) {
+          tryMove(pending.vec || vecOf(pending.codes), true, pending.turn); pending = null;
+        }
+      } else if (padHold && performance.now() >= padHold.nextAt) {
+        tryMove(padHold.vec, false, padHold.turn); // repeats only over known tiles
+        padHold.nextAt = performance.now() + PAD_REPEAT_MS;
+      } else if (held.length && !shiftDown) tryMove(vecOf(held), false, false);
+    }
 
-  if (P.moving) {
-    P.t += dt / P.dur;
-    const t = Math.min(P.t, 1);
-    player.position.lerpVectors(P.from, P.to, t);
-    if (P.kind === 'knock') {
-      player.position.y = REV_Y + Math.sin(t * Math.PI) * 1.2;
-      ud.body.rotation.x = -t * Math.PI * 2;
-    } else {
-      player.position.y = REV_Y + Math.abs(Math.sin(t * Math.PI)) * 0.07;
-      P.phase += dt * 16;
-    }
-    if (P.t >= 1) {
-      P.moving = false;
-      if (P.kind === 'walk') arrive();
-      else { ud.body.rotation.x = 0; P.stun = 0.35; dust(player.position); sfx.step(); }
-    }
-  } else P.phase *= 0.8;
+    if (P.moving) {
+      P.t += dt / P.dur;
+      const t = Math.min(P.t, 1);
+      player.position.lerpVectors(P.from, P.to, t);
+      if (P.kind === 'knock') {
+        player.position.y = REV_Y + Math.sin(t * Math.PI) * 1.2;
+        ud.body.rotation.x = -t * Math.PI * 2;
+      } else {
+        player.position.y = REV_Y + Math.abs(Math.sin(t * Math.PI)) * 0.07;
+        P.phase += dt * 16;
+      }
+      if (P.t >= 1) {
+        P.moving = false;
+        if (P.kind === 'walk') arrive();
+        else { ud.body.rotation.x = 0; P.stun = 0.35; dust(player.position); sfx.step(); }
+      }
+    } else P.phase *= 0.8;
+  }
 
   const walking = P.moving && P.kind === 'walk';
   const swing = Math.sin(P.phase) * (walking ? 0.7 : 0);
@@ -1506,21 +2054,21 @@ function loop() {
   let dy = targetYaw - P.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
   P.yaw += dy * Math.min(1, dt * 18);
 
-  if (P.dance > 0) {
+  if (!menuOpen && P.dance > 0) {
     P.dance -= dt;
-    player.position.y = REV_Y + Math.abs(Math.sin(now * 9)) * 0.35;
-    P.yaw += dt * 7;
+    if (!reduceMotion) player.position.y = REV_Y + Math.abs(Math.sin(now * 9)) * 0.35;
+    P.yaw += dt * (reduceMotion ? 2 : 7);
     ud.armL.rotation.x = ud.armR.rotation.x = -2.6 + Math.sin(now * 18) * 0.3;
     if (P.dance <= 0) { player.position.y = REV_Y; P.dir = [0, 1]; P.yaw = Math.atan2(Math.sin(P.yaw), Math.cos(P.yaw)); }
   }
   player.rotation.y = P.yaw;
 
   // drop-zone selection: hover over the chosen tile under the parachute, then glide down
-  if (state === 'place') {
+  if (!menuOpen && state === 'place') {
     tmp.set(wx(sel.x), HOVER_Y + Math.sin(now * 2) * 0.12, wz(sel.z));
     player.position.lerp(tmp, Math.min(1, dt * 12));
     player.position.y = tmp.y;
-  } else if (state === 'drop') {
+  } else if (!menuOpen && state === 'drop') {
     P.vy = Math.max(P.vy - 6 * dt, -4.5);
     player.position.x += (wx(P.x) - player.position.x) * Math.min(1, dt * 12);
     player.position.z += (wz(P.z) - player.position.z) * Math.min(1, dt * 12);
@@ -1544,7 +2092,7 @@ function loop() {
     zone.material.opacity = 0.75 + Math.sin(now * 5) * 0.25;
   }
 
-  if (P.dead) {
+  if (!menuOpen && P.dead) {
     P.vy -= 14 * dt;
     player.position.y = Math.max(REV_Y, player.position.y + P.vy * dt);
     ud.body.rotation.x = Math.min(Math.PI / 2, ud.body.rotation.x + dt * 5);
@@ -1610,7 +2158,8 @@ function loop() {
   lookCur.lerp(look, camK);
   if (shake > 0) {
     shake = Math.max(0, shake - dt);
-    camera.position.add(tmp.set(Math.random() - .5, Math.random() - .5, Math.random() - .5).multiplyScalar(shake * 0.5));
+    const amt = reduceMotion ? shake * 0.12 : shake;
+    camera.position.add(tmp.set(Math.random() - .5, Math.random() - .5, Math.random() - .5).multiplyScalar(amt * 0.5));
   }
   camera.lookAt(lookCur);
   sky.position.copy(camera.position);
@@ -1625,6 +2174,45 @@ function loop() {
 }
 fillStageSelect();
 newGame();
+bootPreview = false;
+applyQuality();
+
+// ================= App lifecycle / native bridge =================
+// pause() saves and shows the menu. resume() is deliberately a no-op: coming back from the
+// background must not restart the timer or continue by itself; the user picks "Devam et".
+let lifecyclePaused = false;
+function lifecyclePause() {
+  if (lifecyclePaused) return;
+  lifecyclePaused = true;
+  clearInputState();
+  suspendAudio();
+  if ($('start').classList.contains('show') || $('msg').classList.contains('show')) { saveNow(); return; }
+  openMenu();
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) lifecyclePause();
+  else {
+    lifecyclePaused = false;
+    if (!$('start').classList.contains('show') && !$('msg').classList.contains('show') && gameInProgress()) openMenu();
+  }
+});
+addEventListener('pagehide', lifecyclePause);
+window.mt3dApp = Object.freeze({
+  pause() {
+    if ($('start').classList.contains('show') || $('msg').classList.contains('show')) {
+      clearInputState(); suspendAudio(); saveNow(); return true;
+    }
+    openMenu();
+    return true;
+  },
+  back() {
+    if ($('start').classList.contains('show')) return false;
+    $('msg').classList.remove('show');
+    openMenu();
+    return true;
+  },
+  resume() { return false; }, // no automatic resume; an explicit user choice is required
+});
 loop();
 
 </script>

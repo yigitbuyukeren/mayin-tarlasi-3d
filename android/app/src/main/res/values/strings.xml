@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mayın Tarlası 3D</string>
+    <string name="exit_title">Oyundan çıkılsın mı?</string>
+    <string name="exit_message">Kaydedilmiş ilerleme korunur.</string>
+    <string name="exit_confirm">Çık</string>
+    <string name="cancel">Vazgeç</string>
+    <string name="ok">Tamam</string>
+    <string name="error_title">Oyun yüklenemedi</string>
+    <string name="error_body">Yerel oyun dosyaları açılamadı veya WebView başlatılamadı.</string>
+    <string name="error_full">%1$s%2$s</string>
+    <string name="error_renderer">WebView işlemi beklenmedik şekilde kapandı.</string>
+    <string name="retry">Yeniden dene</string>
+    <string name="js_alert_title">Mayın Tarlası 3D</string>
+</resources>

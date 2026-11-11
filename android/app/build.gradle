@@ -1,0 +1,55 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.yigitbuyukeren.mayintarlasi3d'
+    compileSdk 36
+    buildToolsVersion '36.0.0'
+
+    defaultConfig {
+        applicationId 'com.yigitbuyukeren.mayintarlasi3d'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        debug {
+            // Hata ayıklama yalnız BuildConfig.DEBUG üzerinden etkinleşir.
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+
+    lint {
+        abortOnError true
+        checkReleaseBuilds true
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.14.0'
+}
+
+// Kök index.html değiştirilmeden Android türevi üretilir. Bu görev ağa çıkmaz;
+// vendor hazırlığı yalnız `python3 tools/package_android.py vendor` ile açıkça yapılır.
+def packageWebAssets = tasks.register('packageWebAssets', Exec) {
+    group = 'android'
+    description = 'Kök index.html ve yerel three vendor kaynağından çevrimdışı Android assetleri üretir.'
+    workingDir rootProject.projectDir
+    commandLine 'python3', '../tools/package_android.py', 'package'
+}
+
+tasks.named('preBuild').configure {
+    dependsOn packageWebAssets
+}

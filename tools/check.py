@@ -153,8 +153,16 @@ def main() -> int:
         return 1
     print(
         f"OK index.html: {len(page.ids)} id, {len(page.scripts)} betik, "
-        f"{len(set(page.ids))} benzersiz kimlik"
+        f"{len(set(page.ids))} benzersiz kimlik", flush=True
     )
+    for command in (
+        ["node", "--test", "tools/test_mobile.mjs"],
+        [sys.executable, "tools/package_android.py", "package"],
+        [sys.executable, "tools/test_android.py", "-v"],
+    ):
+        result = subprocess.run(command, cwd=ROOT)
+        if result.returncode:
+            return result.returncode
     return 0
 
 

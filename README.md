@@ -35,6 +35,32 @@ python3 -m http.server 8765
 
 Sonra `http://localhost:8765/` adresini aç. Aynı Wi-Fi'daki telefondan bilgisayarın yerel IP adresiyle de açılır.
 
+### 📱 Android uygulaması
+
+Web oyununun kaynağı yine tek `index.html` dosyasıdır. Android kabuğu `android/`
+altında ayrı tutulur; web sürümünün çalışması için Android araçları gerekmez.
+Android sürümünde oyun ve sabit sürümlü grafik kütüphanesi uygulamayla paketlenir;
+oyun sırasında internet bağlantısı, hesap veya sunucu gerekmez.
+Kurulum, SDK sürümleri ve paketleme komutları için [Android rehberi](android/README.md).
+
+İlerleme ve devam eden oyun cihazın yerel uygulama verisinde tutulur. Uygulamanın
+verilerini silmek veya uygulamayı kaldırmak kayıtları kaybettirebilir. Bulut kayıt
+ve cihazlar arası eşitleme yoktur.
+
+Oyun menüsünden düşük/orta/yüksek grafik kalitesi seçilebilir. Mobilde düşük kalite
+varsayılandır; çim yoğunluğu değişimi yeni tarlada tam uygulanır. Dokunmatik yön
+tuşuna basılı tutmak yalnız açılmış karelerde yürütür; bilinmeyen kareye girmek
+için yeni bir dokunuş gerekir. Kamera iki parmakla veya +/− tuşlarıyla yakınlaştırılır.
+Arka plandan dönüşte oyun otomatik başlamaz; menüden devam seçilir. Kayıt son
+kararlı oyun durumuna dayanır; ani süreç kapanmasında son hareket kaybolabilir.
+
+**Yayın kapısı:** Kaynak kontrollerinin geçmesi tek başına Play Store'a hazır
+olduğu anlamına gelmez. İmzalı yayın paketi hazırlamadan önce gerçek Android
+cihazında çevrimdışı ilk açılış, uygulama kapatılıp açıldığında kayıt devamı,
+arama/arka plan dönüşü, geri tuşu, küçük ekranlar ve uzun oturumda ısınma/pil
+tüketimi doğrulanmalıdır. Grafik bağlamı kaybı ve işletim sisteminin süreci
+sonlandırması da cihaz testine dahildir. Bu depodaki push mağazaya yayın yapmaz.
+
 ### 🎮 Oynanış
 
 Önce iniş karesini seç: tıkla/dokun ya da oklarla gezdirip **Boşluk**'a bas. Etrafındaki 3×3 alan her zaman güvenlidir; mayınlar ancak inişten sonra dizilir.
@@ -103,7 +129,14 @@ Değişiklikten sonra sayfayı denetle:
 python3 tools/check.py
 ```
 
-Kontrol; zorunlu meta etiketlerini ve CSP'yi, benzersiz `id`'leri, izin verilen ağ hedeflerini, sabitlenmiş Three.js sürümünü ve satır içi JavaScript'in sözdizimini (`node --check`) doğrular. Node gerekir. Aynı kontrol GitHub Actions'ta da çalışır ([`check.yml`](.github/workflows/check.yml)).
+Kontrol; zorunlu meta etiketlerini ve CSP'yi, benzersiz `id`'leri, izin verilen ağ hedeflerini, sabitlenmiş Three.js sürümünü ve satır içi JavaScript'in sözdizimini (`node --check`) doğrular. Ayrıca kayıt birim testlerini, ağsız Android paketlemeyi ve Android güvenlik kontrollerini çalıştırır. Node gerekir. Aynı kontrol GitHub Actions'ta da çalışır ([`check.yml`](.github/workflows/check.yml)).
+
+Mobil tarayıcı regresyonları için Python Playwright bağımlılığı
+`tools/requirements-test.txt` içinde sabitlenmiştir. Ayrı bir sanal ortamda
+`python3 -m pip install -r tools/requirements-test.txt` ve
+`python3 -m playwright install chromium` ile hazırlanabilir. Bu testler gerçek
+Android WebView, işletim sistemi geri tuşu veya fiziksel cihaz performansının
+yerine geçmez.
 
 Proje tek dosyadır ve build adımı yoktur; oyun mantığını doğrudan `index.html` içinde düzenle. Oynanış değişikliklerinde masaüstü klavye ve dar ekran dokunmatik kontrolleri birlikte dene.
 

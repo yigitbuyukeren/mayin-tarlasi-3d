@@ -2,6 +2,7 @@
 
 Bu proje ayrı bir Gradle projesidir. Kök `index.html` değiştirilmez; Android için
 türev çevrimdışı asset üretilir. Ağ izni yoktur, JavaScript köprüsü yoktur.
+Yerel `web/` deneyim/ilerleme kaynakları da uygulamaya birebir paketlenir.
 
 ## Sürümler
 
@@ -61,6 +62,8 @@ Android türevinde:
 - Origin: `https://appassets.androidplatform.net/assets/` (`WebViewAssetLoader`).
 - `INTERNET` izni yok; `allowBackup=false`, `usesCleartextTraffic=false`, cleartext
   kapalı network security config.
+- İsteğe bağlı dokunsal geri bildirim için yalnız normal `VIBRATE` izni vardır;
+  çalışma anında tehlikeli izin veya ağ erişimi istenmez.
 - Harici navigasyon ve asset origin dışı istekler 403 ile engellenir; `file://`,
   `content://`, dosya/universal erişim kapalı; mixed content `NEVER_ALLOW`.
 - JavaScript köprüsü (`addJavascriptInterface`) yok. WebView debug yalnız

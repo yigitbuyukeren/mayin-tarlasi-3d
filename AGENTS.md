@@ -1,9 +1,12 @@
 # Mayın Tarlası 3D
-- Web oyunu tek dosyadır: `index.html`; framework veya ikinci bir oyun sayfası ekleme. Android uygulama kabuğu `android/`, çevrimdışı paketleme ve test araçları `tools/` altında tutulabilir; üretilen oyun sayfasını elle düzenleme.
+- Oyun girişi `index.html`, modüler birinci taraf kaynaklar `web/` altındadır; framework veya ikinci bir oyun sayfası ekleme. Android uygulama kabuğu `android/`, çevrimdışı paketleme ve test araçları `tools/` altında tutulur; üretilen oyun sayfasını elle düzenleme.
 - Dışarıdan yalnız sürümü sabitlenmiş Three.js (jsdelivr) ve Google Fonts yüklenir; yeni ağ isteği, CDN, analitik veya kullanıcı verisi gönderimi ekleme. `index.html` CSP'sini koru.
+- `web/` altındaki birinci taraf betik ve stiller aynı origin'den yüklenebilir; Android paketine aynı içerikle kopyalanmalı, kaynak sunucusunda yalnız açık izinli dosyalar sunulmalıdır. Mevcut kayıtların ilk sekiz bölüm sırası ve ayar anahtarlarıyla uyumunu koru.
 - Android sürümü kaynaklarını paket içinde taşımalı ve ağ izni istememeli. Paketleme sırasında doğrulanan sürümü sabit kaynaklar kullanılabilir; Android sayfasının CSP'si yalnız yerel kaynakları kabul etmeli. Kimlik bilgisi, imza anahtarı veya `local.properties` okuma/commit etme.
 - Oyun durumu yalnız `localStorage` alanında `mt3d-v1-*` anahtarlarıyla tutulur; gerçek kullanıcı verisi kullanma.
 - Mayınlar iniş karesi seçildikten sonra dizilmeli; 3×3 güvenli alan ve bütün güvenli karelerin yürüyerek ulaşılabilirliği korunmalı.
 - Kontrol: `python3 tools/check.py`.
 - Bu kontrol mobil kayıt birim testlerini, çevrimdışı paketlemeyi ve Android güvenlik sınırlarını da çalıştırır. Mobil davranış değişikliklerinde ayrıca `python3 tools/test_browser.py --url http://127.0.0.1:0 --assets android/app/src/main/assets` çalıştır. Android kabuğu değişikliklerinde `android/` içinde `./gradlew :app:compileDebugJavaWithJavac :app:lintDebug` gerekir; fiziksel cihaz testini bunlarla eşdeğer sayma.
+- Deneyim/ilerleme değişikliklerinde `python3 tools/test_experience.py` gerekir. Günlük görevler UTC gününe ve sabit inişe göre deterministiktir; ödül idempotansını, eski sekiz bölüm kaydını ve profil migrasyonunu koru. Eğitim gerçek hamlelerle tamamlanmalı, normal kampanya kilidini atlamamalı.
+- Ağ önizlemesi için `tools/serve.py` kullan; genel depo dizinini sunma. Android emülatör testi yalnız özel `mt3d-qa` AVD'sinde, açık test görevi kapsamında yapılır; release imzalama/yayın değildir. Titreşim için normal `VIBRATE` izni vardır; ağ ve tehlikeli izin ekleme.
 - Canlı site yok; `main` push yalnız GitHub deposunu günceller.

@@ -52,6 +52,7 @@ import traceback
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path, PurePosixPath
 from urllib.parse import unquote, urlsplit, urlunsplit
+from package_android import LOCAL_ASSETS
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INDEX = ROOT / "index.html"
@@ -122,8 +123,10 @@ class WhitelistHandler(SimpleHTTPRequestHandler):
             if part.lower() in DENY_PARTS:
                 return None
         if not self.assets_mode:
-            # Varsayılan modda proje kökündeki başka hiçbir dosya sunulmaz.
-            return "" if rel in {"", self.index_rel} else None
+            # Yalnız oyun girişi ve açıkça izinli birinci taraf kaynaklar sunulur.
+            if rel in {"", self.index_rel}:
+                return ""
+            return rel if rel in LOCAL_ASSETS else None
         if rel == "":
             return ""
         target = (self.base_dir / rel).resolve()
@@ -363,7 +366,7 @@ def assert_controls_layout(page, label: str) -> None:
     check(page.locator("#pad").is_visible(), f"{label}: #pad görünmüyor")
     boxes = page.evaluate(
         """() => {
-            const nodes = [...document.querySelectorAll('#pad button, #menuBtn')];
+            const nodes = [...document.querySelectorAll('#pad button, #menuBtn, #zoomCtl button')];
             return nodes
               .filter(el => {
                 const style = getComputedStyle(el);
@@ -664,11 +667,13 @@ def run(args: argparse.Namespace) -> int:
                     check(restored[field] == original[field], f"restore sonrası {field} değişti")
 
                 # Kalite seçimi gerçek canvas çözünürlüğünü değiştirmeli.
+                tap(page, '#expNavSettings')
                 tap(page, '[data-q="high"]')
                 high_width = page.locator("#c").evaluate("canvas => canvas.width")
                 tap(page, '[data-q="low"]')
                 low_width = page.locator("#c").evaluate("canvas => canvas.width")
                 check(high_width > low_width, "kalite seçimi render çözünürlüğünü değiştirmedi")
+                tap(page, '#expNavCampaign')
                 tap(page, "#playBtn")
 
                 # Çok kısa dokunuş rAF'ten önce bitse bile bir adım kaybolmamalı.
@@ -682,12 +687,32 @@ def run(args: argparse.Namespace) -> int:
                 check(moves, "dokunmatik adım testi için bilinen komşu yok")
                 direction, dx, dz = moves[0]
                 tap(page, '#pad [data-dir="' + direction + '"]')
-                page.wait_for_timeout(700)
+                page.wait_for_function("""target => {
+                    const saved = JSON.parse(localStorage.getItem('mt3d-v1-save'));
+                    return saved?.player.x === target.x && saved?.player.z === target.z;
+                }""", arg={"x": x + dx, "z": z + dz}, timeout=15000)
                 app_call(page, "pause")
                 moved = json.loads(get_store(page)["mt3d-v1-save"])
                 check((moved["player"]["x"], moved["player"]["z"]) == (x + dx, z + dz),
                       "kısa dokunma beklenen tek adımı üretmedi")
                 tap(page, "#playBtn")
+
+                # Grafik bağlamı kaybı kayıt silmemeli veya oyunu otomatik sürdürmemeli.
+                page.evaluate("""() => {
+                    const canvas = document.querySelector('#c');
+                    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+                    const extension = gl.getExtension('WEBGL_lose_context');
+                    if (!extension) throw Error('Bağlam kaybı test uzantısı yok');
+                    window.__qaRestoreGraphics = () => extension.restoreContext();
+                    canvas.addEventListener('webglcontextrestored', () => { window.__qaGraphicsRestored = true; }, {once: true});
+                    extension.loseContext();
+                }""")
+                page.locator('#start.show').wait_for()
+                page.evaluate('window.__qaRestoreGraphics()')
+                page.wait_for_function('() => window.__qaGraphicsRestored === true', timeout=20000)
+                check(page.locator('#start').is_visible(), 'grafik geri gelince oyun kendiliğinden sürdü')
+                check('mt3d-v1-save' in get_store(page), 'grafik kaybında kayıt silindi')
+                tap(page, '#playBtn')
 
                 # 6) Portrait + landscape kontrol yerleşimi
                 page.set_viewport_size({"width": 360, "height": 640})
@@ -696,6 +721,10 @@ def run(args: argparse.Namespace) -> int:
                 page.set_viewport_size({"width": 640, "height": 360})
                 page.wait_for_timeout(500)
                 assert_controls_layout(page, "landscape 640x360")
+                for width, height in ((320, 568), (568, 320)):
+                    page.set_viewport_size({'width': width, 'height': height})
+                    page.wait_for_timeout(300)
+                    assert_controls_layout(page, f'küçük ekran {width}x{height}')
                 page.set_viewport_size({"width": 360, "height": 640})
                 page.wait_for_timeout(300)
                 runtime.assert_clean("orientation")
@@ -705,6 +734,7 @@ def run(args: argparse.Namespace) -> int:
                 page.evaluate("localStorage.setItem('mt3d-v1-stars', JSON.stringify({'0': 1}))")
                 page.reload(wait_until="load")
                 page.wait_for_function("() => !!window.mt3dApp")
+                tap(page, '#expNavSettings')
                 page.once("dialog", lambda dialog: dialog.accept())
                 tap(page, "#resetBtn")
                 app_call(page, "pause")

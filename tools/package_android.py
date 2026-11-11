@@ -28,6 +28,8 @@ ANDROID = ROOT / "android"
 VENDOR = ANDROID / "vendor" / "three-0.160.0"
 ASSETS = ANDROID / "app" / "src" / "main" / "assets"
 THREE_VERSION = "0.160.0"
+LOCAL_ASSETS = ("web/progression.js", "web/experience.js", "web/experience.css")
+ANDROID_FAVICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII='
 THREE_BASE = f"https://cdn.jsdelivr.net/npm/three@{THREE_VERSION}/"
 MANIFEST = VENDOR / "SHA256SUMS.json"
 ENTRIES = (
@@ -279,6 +281,8 @@ def android_html() -> bytes:
     html = source.decode("utf-8")
 
     html = strip_remote_resources(html)
+    # WebView aksi halde /favicon.ico için gereksiz, engellenen bir istek gönderir.
+    html = html.replace('</head>', '<link rel="icon" href="' + ANDROID_FAVICON + '">\n</head>')
     html = html.replace('"Fredoka", ', "")
 
     csp_pattern = re.compile(
@@ -337,6 +341,16 @@ def build_plan() -> dict[str, bytes]:
     html = android_html()
     verify_page_imports(html.decode("utf-8"), vendor_files)
     plan: dict[str, bytes] = {"index.html": html}
+    for relative in LOCAL_ASSETS:
+        path = ROOT / relative
+        if not path.is_file() or path.is_symlink():
+            raise SystemExit(f"birinci taraf oyun kaynağı eksik/geçersiz: {relative}")
+        plan[relative] = path.read_bytes()
+    for raw in re.findall(r'''\b(?:src|href)=["']([^"']+)["']''', html.decode("utf-8")):
+        if raw == ANDROID_FAVICON:
+            continue
+        if raw.removeprefix("./") not in LOCAL_ASSETS:
+            raise SystemExit(f"Android sayfasında plan dışı kaynak: {raw}")
     for path, data in vendor_files.items():
         if path == "LICENSE":
             plan[f"licenses/THREE-LICENSE.txt"] = data

@@ -16,6 +16,7 @@ const dataMatch = html.match(/<script id="mt3d-data">([\s\S]*?)<\/script>/);
 assert.ok(dataMatch, 'mt3d-data script block must exist');
 
 const sandbox = { window: {} };
+vm.runInNewContext(readFileSync(fileURLToPath(new URL('../web/progression.js', import.meta.url)), 'utf8'), sandbox, { filename: 'progression.js' });
 vm.runInNewContext(dataMatch[1], sandbox, { filename: 'mt3d-data.js' });
 const DATA = sandbox.window.MT3D_DATA;
 
@@ -187,4 +188,31 @@ test('mobile/lifecycle wiring is present in index.html', () => {
   assert.match(html, /prefers-reduced-motion/);
   // The timer must remain visible on phones.
   assert.doesNotMatch(html, /#timeChip\s*\{\s*display:\s*none/);
+});
+
+test('production generator preserves safe landing and reachability across all 24 stages', () => {
+  const generator = html.match(/function placeMines\(safe\) \{[\s\S]*?\n\}/)?.[0];
+  const reachable = html.match(/function allSafeReachable\(start\) \{[\s\S]*?\n\}/)?.[0];
+  assert.ok(generator && reachable, 'production generation functions must be available');
+  const progression = sandbox.window.MT3D_PROGRESS;
+  for (const cfg of progression.CATALOG) {
+    for (const [x, z] of [[0, 0], [Math.floor(cfg.w / 2), Math.floor(cfg.d / 2)], [cfg.w - 1, cfg.d - 1]]) {
+      for (const seed of [1, 97, 20261111]) {
+        const grid = Array.from({ length: cfg.w * cfg.d }, (_, i) => ({ x: i % cfg.w, z: Math.floor(i / cfg.w), mine: false, nb: [] }));
+        for (const cell of grid) for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+          const nx = cell.x + dx, nz = cell.z + dz;
+          if ((dx || dz) && nx >= 0 && nz >= 0 && nx < cfg.w && nz < cfg.d) cell.nb.push(grid[nz * cfg.w + nx]);
+        }
+        const math = Object.create(Math);
+        math.random = progression.seededRandom(seed);
+        const env = { grid, cfg, safe: grid[z * cfg.w + x], Math: math, mode: 'kampanya', tutorial: null, PROGRESS: progression };
+        vm.runInNewContext(reachable + '\n' + generator + '\nresult = placeMines(safe);', env);
+        assert.equal(env.result, true, `${cfg.id}: tarla üretilemedi`);
+        assert.equal(grid.filter(c => c.mine).length, cfg.m);
+        assert.equal(env.safe.mine, false);
+        assert.ok(env.safe.nb.every(c => !c.mine), `${cfg.id}: 3x3 güvenli alan bozuldu`);
+        assert.equal(DATA.safeReachable(cfg, grid.flatMap((c, i) => c.mine ? [i] : []), z * cfg.w + x, grid.length), true);
+      }
+    }
+  }
 });

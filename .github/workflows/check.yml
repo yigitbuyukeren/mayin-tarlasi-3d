@@ -24,6 +24,7 @@ jobs:
       - run: python3 -m pip install -r tools/requirements-test.txt
       - run: python3 -m playwright install chromium
       - run: python3 tools/test_browser.py --url http://127.0.0.1:0 --assets android/app/src/main/assets
+      - run: python3 tools/test_experience.py
 
   android:
     runs-on: ubuntu-latest

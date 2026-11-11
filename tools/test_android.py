@@ -56,9 +56,10 @@ class AndroidSafetyTests(unittest.TestCase):
                 with self.assertRaises(SystemExit):
                     package_android.load_manifest()
 
-    def test_manifest_has_no_permissions_or_backup(self):
+    def test_manifest_has_no_network_or_dangerous_permissions_or_backup(self):
         manifest = ET.parse(ANDROID / 'app/src/main/AndroidManifest.xml').getroot()
-        self.assertFalse(manifest.findall('uses-permission'))
+        permissions = {element.get(NS + 'name') for element in manifest.findall('uses-permission')}
+        self.assertEqual(permissions, {'android.permission.VIBRATE'})
         application = manifest.find('application')
         self.assertIsNotNone(application)
         self.assertEqual(application.get(NS + 'usesCleartextTraffic'), 'false')

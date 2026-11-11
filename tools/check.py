@@ -19,6 +19,7 @@ from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlparse
+from package_android import LOCAL_ASSETS
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "index.html"
@@ -89,8 +90,15 @@ def check_scripts(page: Page) -> list[str]:
     for attrs, body in page.scripts:
         kind = attrs.get("type", "")
         if attrs.get("src"):
-            errors.append(f"harici betik yasak: {attrs['src']}")
-            continue
+            relative = attrs['src'].removeprefix('./')
+            if relative not in LOCAL_ASSETS or not relative.endswith('.js'):
+                errors.append(f"izin verilmeyen betik: {attrs['src']}")
+                continue
+            path = ROOT / relative
+            if not path.is_file() or path.is_symlink():
+                errors.append(f"yerel betik eksik/geçersiz: {relative}")
+                continue
+            body = path.read_text(encoding='utf-8')
         if kind == "importmap":
             try:
                 importmap = json.loads(body)["imports"]
@@ -146,6 +154,16 @@ def main() -> int:
         errors.append("gizli anahtar benzeri metin var")
     if "mt3d-v1-" not in source:
         errors.append("beklenen localStorage anahtar öneki (mt3d-v1-) yok")
+    for relative in LOCAL_ASSETS:
+        path = ROOT / relative
+        if not path.is_file() or path.is_symlink():
+            errors.append(f"birinci taraf kaynak eksik/geçersiz: {relative}")
+            continue
+        content = path.read_text(encoding='utf-8')
+        if SECRET.search(content):
+            errors.append(f"birinci taraf kaynakta gizli anahtar benzeri metin: {relative}")
+        if re.search(r'https?://|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b', content):
+            errors.append(f"birinci taraf kaynakta beklenmeyen ağ hedefi/API: {relative}")
 
     if errors:
         for error in errors:
@@ -157,6 +175,7 @@ def main() -> int:
     )
     for command in (
         ["node", "--test", "tools/test_mobile.mjs"],
+        ["node", "--test", "tools/test_progression.mjs"],
         [sys.executable, "tools/package_android.py", "package"],
         [sys.executable, "tools/test_android.py", "-v"],
     ):

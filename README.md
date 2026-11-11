@@ -7,9 +7,9 @@
 **[🎮 Oynanış](#-oynanış)** &nbsp;·&nbsp; **[🗺️ Bölümler](#️-bölümler)** &nbsp;·&nbsp; **[🐞 Sorun bildir](https://github.com/yigitbuyukeren/mayin-tarlasi-3d/issues)**
 
 [![Lisans: MIT](https://img.shields.io/badge/lisans-MIT-F5A623?style=flat-square&labelColor=16150F)](LICENSE)
-![Tek dosya](https://img.shields.io/badge/tek-HTML%20dosyas%C4%B1-F5A623?style=flat-square&labelColor=16150F&logo=html5&logoColor=E34F26)
+![Platform](https://img.shields.io/badge/platform-Web%20%2B%20Android-F5A623?style=flat-square&labelColor=16150F)
 ![Three.js](https://img.shields.io/badge/Three.js-0.160.0-F5A623?style=flat-square&labelColor=16150F)
-![Bölüm](https://img.shields.io/badge/kampanya-8%20b%C3%B6l%C3%BCm-F5A623?style=flat-square&labelColor=16150F)
+![Bölüm](https://img.shields.io/badge/kampanya-24%20g%C3%B6rev-F5A623?style=flat-square&labelColor=16150F)
 [![Kontrol](https://img.shields.io/github/actions/workflow/status/yigitbuyukeren/mayin-tarlasi-3d/check.yml?style=flat-square&labelColor=16150F&label=kontrol)](https://github.com/yigitbuyukeren/mayin-tarlasi-3d/actions)
 
 🇹🇷 [Türkçe](#-türkçe) &nbsp;·&nbsp; 🇬🇧 [English](#-english)
@@ -19,7 +19,7 @@
 <details open>
 <summary><h2>🇹🇷 Türkçe</h2></summary>
 
-Uzmanı tarlada yürüterek oynanan 3D mayın tarlası. Klasik oyunun kuralları, bir karakterin gözünden: kareleri tıklayarak değil, üzerlerine yürüyerek açarsın. **Tek bir HTML dosyası, kurulum yok.**
+Uzmanı tarlada yürüterek oynanan 3D mayın tarlası. Kareleri tıklayarak değil, üzerlerine yürüyerek açarsın. **24 görev, oynayarak eğitim, günlük meydan okuma ve çevrimdışı Android sürümü.**
 
 | 🚶 **Yürüyerek oyna** | 🎯 **Adil tarlalar** | 📱 **Telefon ve masaüstü** | 🔒 **Sunucusuz** |
 |:---:|:---:|:---:|:---:|
@@ -27,17 +27,19 @@ Uzmanı tarlada yürüterek oynanan 3D mayın tarlası. Klasik oyunun kuralları
 
 ### 🚀 Çalıştırma
 
-Dosyayı doğrudan tarayıcıda açabilirsin. Sorun çıkarsa klasörün içinde küçük bir sunucu başlat:
+Yalnız izinli oyun kaynaklarını sunan yerel önizlemeyi başlat:
 
 ```bash
-python3 -m http.server 8765
+python3 tools/serve.py --port 8766
 ```
 
-Sonra `http://localhost:8765/` adresini aç. Aynı Wi-Fi'daki telefondan bilgisayarın yerel IP adresiyle de açılır.
+`http://localhost:8766/` adresini aç. Aynı ağdan erişim için `--bind 0.0.0.0` ekle;
+firewall erişimi ayrıca gerekebilir. Tam çevrimdışı önizleme için önce
+`python3 tools/package_android.py package`, sonra sunucuya `--android` ekle.
 
 ### 📱 Android uygulaması
 
-Web oyununun kaynağı yine tek `index.html` dosyasıdır. Android kabuğu `android/`
+Web girişi `index.html`, modüler deneyim kaynakları `web/` altındadır. Android kabuğu `android/`
 altında ayrı tutulur; web sürümünün çalışması için Android araçları gerekmez.
 Android sürümünde oyun ve sabit sürümlü grafik kütüphanesi uygulamayla paketlenir;
 oyun sırasında internet bağlantısı, hesap veya sunucu gerekmez.
@@ -50,7 +52,8 @@ ve cihazlar arası eşitleme yoktur.
 Oyun menüsünden düşük/orta/yüksek grafik kalitesi seçilebilir. Mobilde düşük kalite
 varsayılandır; çim yoğunluğu değişimi yeni tarlada tam uygulanır. Dokunmatik yön
 tuşuna basılı tutmak yalnız açılmış karelerde yürütür; bilinmeyen kareye girmek
-için yeni bir dokunuş gerekir. Kamera iki parmakla veya +/− tuşlarıyla yakınlaştırılır.
+için yeni bir dokunuş gerekir. Varsayılan Temkinli adım, bilinmeyen kare için aynı
+yöne üç saniye içinde ikinci dokunuşu ister; Ayarlar'dan kapatılabilir. Kamera iki parmakla veya +/− tuşlarıyla yakınlaştırılır.
 Arka plandan dönüşte oyun otomatik başlamaz; menüden devam seçilir. Kayıt son
 kararlı oyun durumuna dayanır; ani süreç kapanmasında son hareket kaybolabilir.
 
@@ -81,7 +84,8 @@ sonlandırması da cihaz testine dahildir. Bu depodaki push mağazaya yayın yap
 
 ### 🗺️ Bölümler
 
-Kampanya dört temada sekiz bölümden oluşur:
+Kampanya dört bölgede altışar görev içerir: Keşif Hattı, Fırtına Geçidi, Zirve Yolu
+ve Kara Kuşak. İlk sekiz görev eski kayıtlarla uyum için korunmuştur:
 
 | # | Tema | Tarla | Mayın |
 |---:|---|---:|---:|
@@ -96,6 +100,26 @@ Kampanya dört temada sekiz bölümden oluşur:
 
 **Serbest oyun:** 🙂 Kolay 9×9 (10 mayın) · 😬 Orta 12×12 (22) · 💀 Zor 16×16 (40). Süre rekorları zorluk başına tutulur.
 
+9–24. görevler 16×16–18×18 tarlalar ve 41–55 mayın içerir. İsimler, hedefler ve tüm
+bölüm tanımları [`web/progression.js`](web/progression.js) içindedir. Hasarsız
+bitirme, az dedektör kullanma ve süre hedefleri bonus madalya verir; normal
+kazanma şartını değiştirmez, sonraki bölüme geçişi engellemez.
+
+### 🧭 Mobil macera
+
+- **Sekiz adımlı eğitim:** iniş, yürüme, sayılar, bayrak, dedektör ve çevre açmayı
+  gerçekten oynayarak öğren. Tekrar oynanabilir; kampanyayı atlatmaz.
+- **Günlük görev:** UTC gününe bağlı yerel tohum, sabit iniş ve aynı mayınlar.
+  İlk zafer 12, ilk hedef madalyası ayrıca 5 oyun altını kazandırır. Cihazın tarihi
+  kullanılır; hesap, çevrimiçi sıralama ve sunucu doğrulaması yoktur.
+- **Gardırop:** altı renk görünümü, yalnız kazanılan altınla açılır. Gerçek para,
+  reklam veya uygulama içi ödeme yoktur.
+- **İlerleme:** bölüm rekorları, hedef madalyaları, on başarım ve istatistikler.
+  Aynı koşu ikinci kez ödül vermez. Günlük geçmiş 30 gün, koşu defteri 128 sonuçla
+  sınırlıdır. Eski yıldızlar ve kilitler korunur; geçmişe dönük altın verilmez.
+- **Ayarlar:** solak düzeni, ses, isteğe bağlı titreşim, temkinli adım, azaltılmış
+  hareket ve kalite. Titreşim cihaz/WebView desteğine bağlıdır.
+
 ### ✨ Neler var
 
 - 🎲 **Adil mayın dizilimi:** iniş karesi ve çevresi boş bırakılır; dizilim, bütün güvenli karelerin yürüyerek erişilebilir olduğu doğrulanana kadar yeniden denenir. Çıkmaz tarla oluşmaz.
@@ -106,7 +130,7 @@ Kampanya dört temada sekiz bölümden oluşur:
 - 🔊 **Web Audio sesleri:** adım, bayrak, tarama, patlama ve zafer sesleri tarayıcıda üretilir; ses dosyası yoktur.
 - 📱 **Dokunmatik kontroller:** sol altta yön tuş takımı, sağda bayrak, tarama ve çevre açma düğmeleri.
 - 🏆 **İlerleme:** bölüm kilitleri, yıldızlar ve en iyi süreler `localStorage` alanında kalır; "İlerlemeyi sıfırla" hepsini siler.
-- ⚡ **Tek dosya:** HTML, CSS ve JavaScript aynı `index.html` içinde; build adımı ve paket yöneticisi yok.
+- ⚡ **Framework yok:** çekirdek `index.html`, modüler deneyim kaynakları `web/` altında; Android kaynakları ağsız paketlenir.
 
 ### 📸 Ekran görüntüleri
 
@@ -117,7 +141,7 @@ Kampanya dört temada sekiz bölümden oluşur:
 ### 🔒 Gizlilik ve teknik yapı
 
 - Sayfa kendi sunucusuna sahip değildir; skor, ilerleme veya oyun verisi hiçbir yere gönderilmez.
-- Dışarıdan yalnız iki kaynak yüklenir: sürümü sabitlenmiş **Three.js 0.160.0** (jsdelivr) ve **Google Fonts** (Fredoka). Başka ağ isteği, CDN veya analitik yoktur; `index.html` içindeki CSP `connect-src 'none'` ile ağ bağlantılarını kapatır.
+- Web sürümünde dışarıdan yalnız sabit **Three.js 0.160.0** ve **Google Fonts** yüklenir; birinci taraf `web/` kaynakları aynı origin'den gelir. Başka dış hedef veya analitik yoktur; CSP `connect-src 'none'` kullanır. Android tüm oyun kaynaklarını içinde taşır; `INTERNET` izni yoktur, yalnız normal `VIBRATE` izni vardır.
 - Mayın tarlası, tema, karakter ve arayüz Three.js ile çalışma anında üretilir; görsel dosyası kullanılmaz.
 - Oyun durumu yalnız `localStorage` alanındaki `mt3d-v1-*` anahtarlarında tutulur.
 
@@ -138,7 +162,10 @@ Mobil tarayıcı regresyonları için Python Playwright bağımlılığı
 Android WebView, işletim sistemi geri tuşu veya fiziksel cihaz performansının
 yerine geçmez.
 
-Proje tek dosyadır ve build adımı yoktur; oyun mantığını doğrudan `index.html` içinde düzenle. Oynanış değişikliklerinde masaüstü klavye ve dar ekran dokunmatik kontrolleri birlikte dene.
+`python3 tools/test_experience.py` gerçek dokunuşlarla eğitimi, günlük tarlayı,
+gardırobu, ayarları ve gerçek görev bitişi/tek ödülü sınar. Android emülatör ve
+WebView/native test komutları [`android/TESTING.md`](android/TESTING.md) içindedir.
+Tarayıcı ve emülatör testleri fiziksel cihazın pil/ısınma testinin yerine geçmez.
 
 ### 📜 Lisans
 
@@ -149,7 +176,7 @@ Proje tek dosyadır ve build adımı yoktur; oyun mantığını doğrudan `index
 <details>
 <summary><h2>🇬🇧 English</h2></summary>
 
-A 3D minesweeper you play by walking a character across the field. The classic rules from the character's point of view: you don't click tiles open, you step onto them. **A single HTML file, no install.**
+A 3D minesweeper you play by walking across the field rather than clicking tiles. **24 missions, an interactive tutorial, daily challenges, unlockable outfits, and an offline Android app.**
 
 | 🚶 **Walk to play** | 🎯 **Fair fields** | 📱 **Phone and desktop** | 🔒 **No server** |
 |:---:|:---:|:---:|:---:|
@@ -157,13 +184,15 @@ A 3D minesweeper you play by walking a character across the field. The classic r
 
 ### 🚀 Run it
 
-Open the file directly in a browser. If that gives you trouble, start a small server in the folder:
+Start the allowlisted game preview server:
 
 ```bash
-python3 -m http.server 8765
+python3 tools/serve.py --port 8766
 ```
 
-Then open `http://localhost:8765/`. You can also open it from a phone on the same Wi-Fi using your computer's local IP address.
+Open `http://localhost:8766/`. Add `--bind 0.0.0.0` for LAN access; firewall rules
+may be required. For offline assets, run `python3 tools/package_android.py package`
+then add `--android` to the preview command. Only game resources are served.
 
 ### 🎮 How to play
 
@@ -185,7 +214,8 @@ First pick a landing tile: click/tap it, or move the cursor with the arrow keys 
 
 ### 🗺️ Levels
 
-The campaign has eight levels across four themes:
+The campaign has 24 missions in four six-mission regions. The first eight keep
+their original settings for save compatibility:
 
 | # | Theme | Field | Mines |
 |---:|---|---:|---:|
@@ -200,6 +230,13 @@ The campaign has eight levels across four themes:
 
 **Free play:** 🙂 Easy 9×9 (10 mines) · 😬 Medium 12×12 (22) · 💀 Hard 16×16 (40). Best times are kept per difficulty.
 
+Missions 9–24 use 16×16–18×18 fields with 41–55 mines. The full catalog lives in
+`web/progression.js`. Bonus medals reward clean runs, scan limits or target times
+without blocking normal progression. An eight-step playable tutorial, deterministic
+UTC daily boards, six earned-coin outfits, ten achievements, records, left-handed
+controls, cautious double-tap steps, haptics and reduced-motion settings are included.
+No real-money payments, ads, accounts or online leaderboards are used.
+
 ### ✨ Features
 
 - 🎲 **Fair mine placement:** the landing tile and its neighbours stay clear; layouts are retried until every safe tile is reachable on foot, so no level can be impossible.
@@ -210,7 +247,7 @@ The campaign has eight levels across four themes:
 - 🔊 **Web Audio sounds:** footsteps, flags, scanning, explosions and victory are generated in the browser; there are no audio files.
 - 📱 **Touch controls:** a d-pad on the left, flag, scan and chord buttons on the right.
 - 🏆 **Progress:** level locks, stars and best times stay in `localStorage`; "Reset progress" clears them all.
-- ⚡ **Single file:** HTML, CSS and JavaScript live in `index.html`; no build step, no package manager.
+- ⚡ **No framework:** entry point `index.html`, local progression/UI files in `web/`, offline runtime assets bundled in Android.
 
 ### 📸 Screenshots
 
@@ -235,7 +272,9 @@ python3 tools/check.py
 
 The check verifies required meta tags and the CSP, unique `id`s, allowed network targets, the pinned Three.js version and the syntax of inline JavaScript (`node --check`). It needs Node. The same check runs in GitHub Actions ([`check.yml`](.github/workflows/check.yml)).
 
-This is a single-file project with no build step; edit the game logic directly in `index.html`. For gameplay changes, try both desktop keyboard and narrow-screen touch controls.
+Run `python3 tools/test_experience.py` for tutorial, daily seed, wardrobe, settings
+and win/reward regressions. See `android/TESTING.md` for isolated Android emulator
+tests. Physical-device performance, battery and long-session tests remain necessary.
 
 ### 📜 License
 

@@ -5,10 +5,10 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'none'; worker-src blob:; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#9fd3f0">
-<meta name="description" content="Mayın Tarlası 3D: uzmanı tarlada yürüterek oynanan, tek HTML dosyalık 3D mayın tarlası oyunu. 8 bölüm, serbest oyun, dedektör ve gece modu.">
+<meta name="description" content="Mayın Tarlası 3D: keşfet, öğren ve ustalaş. 24 görev, etkileşimli eğitim, günlük meydan okuma ve kazanılabilir görünümler.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Mayın Tarlası 3D">
-<meta property="og:description" content="Uzmanı tarlada yürüt, sayıları oku, bütün güvenli kareleri aç. 8 bölüm, serbest oyun, dedektör ve gece modu.">
+<meta property="og:description" content="24 görevde uzmanı tarlada yürüt, günlük meydan okumaya katıl ve yeni görünümler kazan.">
 <meta property="og:image" content="https://raw.githubusercontent.com/yigitbuyukeren/mayin-tarlasi-3d/main/docs/ekran-oyun.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💣</text></svg>">
@@ -146,6 +146,9 @@
   .lv.locked .em { filter: grayscale(1); }
   .lv.locked:active { transform: none; }
   .lv .lock { position: absolute; top: 6px; right: 8px; font-size: 13px; }
+  .region-title { grid-column: 1 / -1; margin: 12px 0 2px; color: var(--accent); font-size: 16px; text-align: left; }
+  .levels .lv .no { font-size: 14px; line-height: 1.25; }
+  .levels .lv .meta { white-space: normal; }
   .row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
   .row .grow { flex: 1; }
   .primary { background: linear-gradient(180deg, var(--accent), var(--accent-2)); color: #2a1500; border: 0; font-weight: 700;
@@ -227,6 +230,9 @@
     #banner, #toast, #hint { transition: none; }
   }
 </style>
+<link rel="stylesheet" href="./web/experience.css">
+<script src="./web/progression.js"></script>
+<script src="./web/experience.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -338,19 +344,10 @@
   const QUALITY_KEY = 'mt3d-v1-quality';
   const MAX_CELLS = 400;
   const MAX_SECONDS = 86400;
-  const MODES = ['kampanya', 'kolay', 'orta', 'zor'];
+  const MODES = ['kampanya', 'kolay', 'orta', 'zor', 'gunluk'];
   const QUALITIES = ['low', 'medium', 'high'];
   const THEMES = ['meadow', 'desert', 'snow', 'night'];
-  const STAGE_CFG = [
-    { w: 8, d: 8, m: 8, theme: 'meadow' },
-    { w: 10, d: 10, m: 13, theme: 'meadow' },
-    { w: 10, d: 10, m: 15, theme: 'desert' },
-    { w: 12, d: 12, m: 21, theme: 'desert' },
-    { w: 12, d: 12, m: 23, theme: 'snow' },
-    { w: 14, d: 14, m: 30, theme: 'snow' },
-    { w: 12, d: 12, m: 22, theme: 'night' },
-    { w: 16, d: 16, m: 40, theme: 'night' },
-  ];
+  const STAGE_CFG = window.MT3D_PROGRESS.CATALOG.map(({ w, d, m, theme }) => ({ w, d, m, theme }));
   const FREE_CFG = {
     kolay: { w: 9, d: 9, m: 10, theme: 'meadow' },
     orta: { w: 12, d: 12, m: 22, theme: 'meadow' },
@@ -358,8 +355,12 @@
   };
 
   const int = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
-  const expectedCfg = (mode, stage) => {
+  const expectedCfg = (mode, stage, dayKey) => {
     if (mode === 'kampanya') return int(stage, 0, STAGE_CFG.length - 1) ? STAGE_CFG[stage] : null;
+    if (mode === 'gunluk') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey || '')) return null;
+      try { return window.MT3D_PROGRESS.dailyChallenge(dayKey).cfg; } catch (e) { return null; }
+    }
     return FREE_CFG[mode] || null;
   };
   const inside = (cfg, x, z) => int(x, 0, cfg.w - 1) && int(z, 0, cfg.d - 1);
@@ -399,12 +400,12 @@
     if (!MODES.includes(raw.mode)) return null;
     const stage = raw.stage;
     if (!int(stage, 0, STAGE_CFG.length - 1)) return null;
-    const expected = expectedCfg(raw.mode, stage);
+    const expected = expectedCfg(raw.mode, stage, raw.dayKey);
     const cfg = raw.cfg;
     if (!expected || !cfg || typeof cfg !== 'object') return null;
     if (cfg.w !== expected.w || cfg.d !== expected.d || cfg.m !== expected.m) return null;
     if (!THEMES.includes(cfg.theme)) return null;
-    if (raw.mode === 'kampanya' && cfg.theme !== expected.theme) return null;
+    if ((raw.mode === 'kampanya' || raw.mode === 'gunluk') && cfg.theme !== expected.theme) return null;
     const cells = cfg.w * cfg.d;
     if (!int(cells, 9, MAX_CELLS) || cfg.m < 1 || cfg.m > cells - 9) return null;
     if (!raw.grid || typeof raw.grid !== 'object') return null;
@@ -452,6 +453,9 @@
       v: SAVE_VERSION,
       mode: raw.mode,
       stage,
+      dayKey: raw.mode === 'gunluk' ? raw.dayKey : null,
+      runId: typeof raw.runId === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(raw.runId) ? raw.runId : null,
+      flagsPlaced: int(raw.flagsPlaced, 0, 10000) ? raw.flagsPlaced : 0,
       cfg: { w: cfg.w, d: cfg.d, m: cfg.m, theme: cfg.theme },
       grid: { mines: sorted(mines), revealed: sorted(revealed), flags: sorted(flags), craters: sorted(craters) },
       start: { x: start.x, z: start.z },
@@ -478,7 +482,7 @@
     return normalizeSnapshot({
       v: SAVE_VERSION, mode, stage,
       cfg: { w: cfg.w, d: cfg.d, m: cfg.m, theme: cfg.theme },
-      grid: { mines, revealed, flags, craters }, start,
+      grid: { mines, revealed, flags, craters }, start, dayKey: input.dayKey, runId: input.runId, flagsPlaced: input.flagsPlaced,
       player: { x: player && player.x, z: player && player.z, dir: player && player.dir },
       lives, charges, elapsed,
     });
@@ -512,16 +516,7 @@ const THEMES = {
             ground: '#4f8f34', hill: '#437c2c', rim: '#7a5c3a', grass: ['#3f8a2a', '#4f9a33', '#5ca83e'], decor: 'tree', night: true },
 };
 const NIGHT_SKY = { top: '#02040d', hor: '#16244a' };
-const STAGES = [
-  { theme: 'meadow', w: 8,  d: 8,  m: 8 },
-  { theme: 'meadow', w: 10, d: 10, m: 13 },
-  { theme: 'desert', w: 10, d: 10, m: 15 },
-  { theme: 'desert', w: 12, d: 12, m: 21 },
-  { theme: 'snow',   w: 12, d: 12, m: 23 },
-  { theme: 'snow',   w: 14, d: 14, m: 30 },
-  { theme: 'night',  w: 12, d: 12, m: 22 },
-  { theme: 'night',  w: 16, d: 16, m: 40 },
-];
+const STAGES = window.MT3D_PROGRESS.CATALOG;
 const FREE = { kolay: { w: 9, d: 9, m: 10 }, orta: { w: 12, d: 12, m: 22 }, zor: { w: 16, d: 16, m: 40 } };
 const NUM_COLORS = ['', '#1e6fff', '#1a9e3a', '#e03131', '#5b2ab8', '#a0522d', '#0d8f8f', '#222', '#777'];
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
@@ -541,13 +536,39 @@ const store = {
 };
 const DATA = window.MT3D_DATA;
 const SAVE_KEY = DATA.SAVE_KEY;
+const PROGRESS = window.MT3D_PROGRESS;
+const PROFILE_KEY = 'mt3d-v1-profile';
+const SETTINGS_KEY = 'mt3d-v1-settings';
+const storedProfile = store.get(PROFILE_KEY, null);
+let profile = PROGRESS.normalizeProfile(storedProfile);
+function normalizeSettings(raw) {
+  const value = raw && typeof raw === 'object' ? raw : {};
+  const bool = (key, fallback) => typeof value[key] === 'boolean' ? value[key] : fallback;
+  return { sound: bool('sound', !store.get('mt3d-v1-muted', false)), haptics: bool('haptics', true),
+    leftHanded: bool('leftHanded', false), confirmUnknown: bool('confirmUnknown', true),
+    reduceMotion: bool('reduceMotion', matchMedia('(prefers-reduced-motion: reduce)').matches) };
+}
+let settings = normalizeSettings(store.get(SETTINGS_KEY, null));
+let experience = null;
+function renderExperience() { experience?.render(); }
+function saveProfile() { profile = PROGRESS.normalizeProfile(profile); store.set(PROFILE_KEY, profile); renderExperience(); }
+function haptic(pattern) {
+  if (settings.haptics && !document.hidden && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} }
+}
 const savedUnlocked = store.get('mt3d-v1-unlocked', 0);
 let unlocked = Number.isInteger(savedUnlocked) ? Math.max(0, Math.min(savedUnlocked, STAGES.length - 1)) : 0;
 const savedStars = store.get('mt3d-v1-stars', {});
 let starsByStage = Object.fromEntries(Object.entries(savedStars && typeof savedStars === 'object' ? savedStars : {})
-  .filter(([key, value]) => /^(?:[0-7])$/.test(key) && Number.isInteger(value) && value >= 0 && value <= LIVES));
+  .filter(([key, value]) => /^\d{1,2}$/.test(key) && Number(key) < STAGES.length && Number.isInteger(value) && value >= 0 && value <= LIVES));
+if (storedProfile == null && Object.values(starsByStage).some(value => value > 0)) {
+  for (const [index, count] of Object.entries(starsByStage)) if (count > 0) {
+    profile.stageResults[index] = { clears: 1, bestLives: count, bestTime: null, objectiveMet: false };
+  }
+  profile.statistics.campaignWins = profile.statistics.wins = profile.statistics.runs = Object.keys(profile.stageResults).length;
+  saveProfile();
+}
 let stage = unlocked;
-const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let reduceMotion = settings.reduceMotion;
 
 // Quality presets actually reduce GPU/CPU cost: DPR, shadow map, bloom and grass density.
 // Defaults: coarse pointers (phones) start low, precise pointers start high.
@@ -564,7 +585,7 @@ if (!DATA.QUALITIES.includes(savedQuality)) store.set(DATA.QUALITY_KEY, quality)
 const qv = () => QUALITY[quality];
 
 // ================= Audio =================
-let AC = null, master = null, muted = store.get('mt3d-v1-muted', false);
+let AC = null, master = null, muted = !settings.sound;
 function ac() {
   if (!AC) {
     AC = new (window.AudioContext || window.webkitAudioContext)();
@@ -928,10 +949,23 @@ grassMat.onBeforeCompile = sh => {
     #endif`);
 };
 let snowPts = null, fireflies = null, clouds = [];
+const sharedGeometries = new Set([...Object.values(GEO), ...Object.values(DG)]);
+const sharedMaterials = new Set([...Object.values(MAT).flat(), ...NUM_MATS, scorchMat, cursorMat, grassMat]);
+function disposeTransientTree(root) {
+  if (!root) return;
+  const geometries = new Set(), materials = new Set();
+  root.traverse(node => {
+    if (node.geometry && !sharedGeometries.has(node.geometry)) geometries.add(node.geometry);
+    for (const material of [node.material].flat()) if (material && !sharedMaterials.has(material)) materials.add(material);
+    if (node.isInstancedMesh) node.dispose();
+  });
+  geometries.forEach(geometry => geometry.dispose());
+  materials.forEach(material => material.dispose());
+}
 function mesh(g, m, x, y, z, shadow = true) { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = shadow; return o; }
 
 function decorate(theme, w, d) {
-  world.clear(); clouds = []; snowPts = null; fireflies = null;
+  disposeTransientTree(world); world.clear(); clouds = []; snowPts = null; fireflies = null;
   const rnd = mulberry(w * 31 + d + theme.decor.length);
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(160, 160), MAT.ground);
   ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; world.add(ground);
@@ -1099,12 +1133,110 @@ player.add(chute);
 let cfg, theme, grid, state, flags, craters, revealed, lives, charges, startTime = 0, elapsed = 0, timerId, P, gen = 0;
 let fx = [], pops = [], shake = 0, zoom = 1, nightToggle = store.get('mt3d-v1-night', false), night = false;
 let startPos = null, lastStable = null, saveT = null, scanTimer = null, scanResolve = null, padHold = null;
-let bootPreview = true;
+let bootPreview = true, lifecyclePaused = false;
+let dayKey = null, runId = '', tutorial = null, armedMove = null, runFlags = 0;
 
 const cellAt = (x, z) => (x >= 0 && z >= 0 && x < cfg.w && z < cfg.d) ? grid[z * cfg.w + x] : null;
 const wx = x => x - (cfg.w - 1) / 2, wz = z => z - (cfg.d - 1) / 2;
 const over = () => state === 'won' || state === 'lost';
 const isCampaign = () => mode === 'kampanya';
+
+function makeRunId() { return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12); }
+function applySkin() {
+  const skin = PROGRESS.SKINS.find(item => item.id === profile.selectedSkin) || PROGRESS.SKINS[0];
+  MAT.shirt.color.set(skin.color);
+  MAT.vest.color.set(skin.color).offsetHSL(0, 0.1, 0.13);
+}
+function updateSettings(patch) {
+  settings = normalizeSettings({ ...settings, ...patch });
+  muted = !settings.sound; reduceMotion = settings.reduceMotion;
+  document.body.classList.toggle('left-handed', settings.leftHanded);
+  document.body.classList.toggle('reduced-motion', reduceMotion);
+  store.set(SETTINGS_KEY, settings); store.set('mt3d-v1-muted', muted);
+  if (master) master.gain.value = muted ? 0 : 0.7;
+  ui.muteBtn.textContent = muted ? '🔇' : '🔊';
+  ui.muteBtn.setAttribute('aria-pressed', String(muted));
+  if (patch.quality) setQuality(patch.quality);
+  if (!settings.haptics && navigator.vibrate) navigator.vibrate(0);
+  renderExperience();
+}
+function beginAdventure(nextMode, index = stage, training = false) {
+  if ((hasSavedGame() || (gameInProgress() && $('start').dataset.paused))
+      && !confirm('Devam eden oyun bırakılıp yeni görev başlatılsın mı?')) return false;
+  clearSave(); clearInputState(); experience?.hideTutorial();
+  tutorial = training ? { step: 0 } : null;
+  mode = nextMode; stage = index;
+  dayKey = nextMode === 'gunluk' ? PROGRESS.utcDay() : null;
+  store.set('mt3d-v1-mode', isCampaign() || FREE[mode] ? mode : 'kampanya');
+  menuTab = isCampaign() || training ? 'kampanya' : 'serbest';
+  pausedAt = 0; delete $('start').dataset.paused;
+  $('start').classList.remove('show'); $('msg').classList.remove('show');
+  newGame();
+  return true;
+}
+function recordRun(won, seconds) {
+  if (mode === 'egitim') return null;
+  const result = PROGRESS.recordResult(profile, {
+    runId, stageIndex: stage, mode, won, lives, chargesUsed: CHARGES - charges,
+    elapsed: seconds, flagsPlaced: Math.min(324, runFlags), scanned: CHARGES - charges, dayKey,
+  });
+  profile = result.profile; saveProfile();
+  if (result.reason) experience?.announce('Sonuç kaydı doğrulanamadı; altın ödülü verilmedi.');
+  return { ...result.rewards, note: result.note };
+}
+function resetAllProgress() {
+  if (!confirm('Bölümler, görünümler, altınlar ve kayıtlı oyun silinsin mi?')) return false;
+  tutorial = null; experience?.hideTutorial(); clearSave();
+  profile = PROGRESS.defaultProfile(); saveProfile();
+  unlocked = 0; stage = 0; starsByStage = {};
+  store.set('mt3d-v1-unlocked', 0); store.set('mt3d-v1-stars', {});
+  for (const key of Object.keys(FREE)) store.del('mt3d-v1-best-' + key);
+  mode = 'kampanya'; store.set('mt3d-v1-mode', mode); menuTab = 'kampanya';
+  newGame(); delete $('start').dataset.paused; $('start').classList.add('show');
+  fillStageSelect(); return true;
+}
+
+const LESSONS = [
+  { title: 'Güvenli iniş', text: 'İniş düğmesine dokun. Etrafındaki 3×3 alan mayınsızdır.', target: '#padFlag' },
+  { title: 'İlk adım', text: 'Yukarı okuna bir kez dokun. Açılmış karelerde basılı tutarak da yürüyebilirsin.', target: '[data-dir="up"]', to: [2, 2] },
+  { title: 'Sayıları oku', text: 'Bir kez daha yukarı yürü. Sayı, etrafındaki sekiz karede kaç mayın olduğunu anlatır.', target: '[data-dir="up"]', to: [2, 1] },
+  { title: 'Tehlikeyi işaretle', text: 'Önündeki üst kare bir mayın. Bayrak düğmesiyle işaretle. Bayraklı kareye yürüyemezsin.', target: '#padFlag' },
+  { title: 'Sınırı keşfet', text: 'Şimdi sol okuna bir kez dokun. Bu eğitimde karakterin sıradaki hedefe doğru dönecek.', target: '[data-dir="left"]', to: [1, 1] },
+  { title: 'Dedektör', text: 'Tara düğmesine dokun. Dedektör, önündeki kareyi güvenle inceler; her görevde üç hakkın var.', target: '#padScan' },
+  { title: 'Mantığını kullan', text: 'Bir kez sola yürü. Buradaki 1 sayısının tek komşu mayını artık bayraklı.', target: '[data-dir="left"]', to: [0, 1] },
+  { title: 'Çevreyi güvenle aç', text: 'Aç düğmesine dokun. Komşu bayrak sayısı doğruysa diğer kareler açılır. Yanlış bayrak gerçek oyunda can götürebilir.', target: '#padChord' },
+];
+function showTutorialStep() {
+  if (!tutorial || $('start').classList.contains('show')) { experience?.hideTutorial(); return; }
+  experience?.showTutorialStep({ ...LESSONS[tutorial.step], step: tutorial.step + 1, total: LESSONS.length });
+}
+function tutorialAction(action) {
+  if (!tutorial) return;
+  const step = tutorial.step, lesson = LESSONS[step];
+  const success = step === 0 ? action === 'land'
+    : lesson.to ? action === 'move' && P.x === lesson.to[0] && P.z === lesson.to[1]
+    : step === 3 ? action === 'flag' && cellAt(2, 0).flagged
+    : step === 5 ? action === 'scan' && cellAt(1, 0).flagged
+    : step === 7 && action === 'chord' && cellAt(0, 0).revealed;
+  if (!success) return;
+  haptic(15);
+  if (step === LESSONS.length - 1) {
+    tutorial = null; state = 'won'; clearInterval(timerId); clearSave();
+    profile.tutorialCompleted = true; saveProfile(); experience?.hideTutorial();
+    showMsg('Keşfe hazırsın! 🎓', 'Yürüdün, sayıları okudun, bayrak koydun ve dedektörü kullandın. Şimdi kendi kararlarınla ilk göreve çık.', 3,
+      ['İlk göreve başla', () => beginAdventure('kampanya', 0)], ['Menü', () => { mode = 'kampanya'; stage = 0; $('msg').classList.remove('show'); openMenu(); }]);
+    return;
+  }
+  tutorial.step++;
+  if ([3, 5, 7].includes(tutorial.step)) P.dir = [0, -1];
+  showTutorialStep();
+}
+function exitTutorial() {
+  tutorial = null; state = 'lost'; clearInterval(timerId); clearSave(); experience?.hideTutorial();
+  mode = 'kampanya'; stage = Math.min(unlocked, STAGES.length - 1); pausedAt = 0;
+  $('msg').classList.remove('show'); $('start').classList.add('show'); delete $('start').dataset.paused;
+  fillStageSelect();
+}
 
 function applyTheme(t) {
   theme = t;
@@ -1139,7 +1271,7 @@ function applyTheme(t) {
 }
 
 const THEME_EMOJI = { meadow: '🌿', desert: '🏜', snow: '❄️', night: '🌙' };
-const FREE_INFO = { kolay: ['🙂', 'Kolay'], orta: ['😬', 'Orta'], zor: ['💀', 'Zor'] };
+const FREE_INFO = { kolay: ['🙂', 'Kolay'], orta: ['😬', 'Orta'], zor: ['💀', 'Zor'], gunluk: ['☀️', 'Günlük Görev'], egitim: ['🎓', 'Eğitim'] };
 function starHtml(n) { return '★'.repeat(n) + '<span class="off">' + '★'.repeat(3 - n) + '</span>'; }
 
 // ---------- Saved field (versioned, validated) ----------
@@ -1162,7 +1294,7 @@ function updateContinueUi() {
   const snap = readSave();
   btn.style.display = snap ? '' : 'none';
   if (snap) {
-    const label = snap.mode === 'kampanya' ? `Bölüm ${snap.stage + 1}` : `Serbest · ${FREE_INFO[snap.mode]?.[1] || snap.mode}`;
+    const label = snap.mode === 'kampanya' ? `Bölüm ${snap.stage + 1}` : snap.mode === 'gunluk' ? `Günlük · ${snap.dayKey}` : `Serbest · ${FREE_INFO[snap.mode]?.[1] || snap.mode}`;
     btn.title = `${label} · ${fmtTime(snap.elapsed)} · ${snap.lives} can`;
   }
 }
@@ -1178,13 +1310,14 @@ function currentElapsed() {
 }
 function makeCurrentSnapshot() {
   if (!cfg || !grid || over() || state !== 'play') return null;
+  if (mode === 'egitim') return null;
   if (P.dead || P.moving || P.stun > 0 || P.scan > 0 || !startPos) return null;
   return DATA.makeSnapshot({
-    stable: true, mode, stage,
+    stable: true, mode, stage, dayKey, runId,
     cfg: { w: cfg.w, d: cfg.d, m: cfg.m, theme: cfg.theme },
     start: startPos,
     player: { x: P.x, z: P.z, dir: [P.dir[0], P.dir[1]] },
-    lives, charges, elapsed: currentElapsed(), grid,
+    lives, charges, elapsed: currentElapsed(), grid, flagsPlaced: runFlags,
   });
 }
 function captureStable() {
@@ -1221,19 +1354,25 @@ function fillStageSelect() {
   box.classList.toggle('free', !camp);
   $('tabCamp').classList.toggle('on', camp); $('tabFree').classList.toggle('on', !camp);
   const items = camp
-    ? STAGES.map((s, i) => ({ key: i, em: THEME_EMOJI[s.theme], no: `Bölüm ${i + 1}`, meta: `${s.w}×${s.d} · ${s.m} 💣`,
-        st: starHtml(starsByStage[i] || 0), locked: i > unlocked, cur: mode === 'kampanya' && i === stage }))
+    ? STAGES.map((s, i) => ({ key: i, em: THEME_EMOJI[s.theme], no: `${i + 1}. ${s.title}`, meta: s.objective.label,
+        st: starHtml(starsByStage[i] || 0) + (profile.stageResults?.[i]?.objectiveMet ? ' · 🏅' : ''), locked: i > unlocked, cur: mode === 'kampanya' && i === stage, region: s.region, description: s.description }))
     : Object.entries(FREE).map(([k, f]) => { const b = store.get('mt3d-v1-best-' + k, null);
         return { key: k, em: FREE_INFO[k][0], no: FREE_INFO[k][1], meta: `${f.w}×${f.d} · ${f.m} 💣`,
           st: b ? `🏆 ${fmtTime(b)}` : '', locked: false, cur: mode === k }; });
   for (const it of items) {
+    if (camp && (it.key === 0 || STAGES[it.key - 1].region !== it.region)) {
+      const heading = document.createElement('h2'); heading.className = 'region-title'; heading.textContent = it.region; box.appendChild(heading);
+    }
     const b = document.createElement('button');
     b.className = 'lv' + (it.locked ? ' locked' : '') + (it.cur ? ' cur' : '');
+    b.setAttribute('aria-disabled', it.locked ? 'true' : 'false');
+    if (it.description) b.title = it.description;
     b.innerHTML = (it.locked ? '<span class="lock">🔒</span>' : '') +
       `<span class="em">${it.em}</span><span class="no">${it.no}</span><span class="meta">${it.meta}</span><span class="st">${it.st}</span>`;
     b.onclick = () => {
       if (it.locked) { sfx.error(); bump(b, 'shake'); return; }
       ac();
+      tutorial = null; experience?.hideTutorial();
       const prevMode = mode, prevStage = stage;
       if (camp) { mode = 'kampanya'; stage = it.key; } else mode = it.key;
       store.set('mt3d-v1-mode', mode);
@@ -1243,6 +1382,7 @@ function fillStageSelect() {
   }
   updatePlayBtn();
   updateContinueUi();
+  renderExperience();
 }
 function gameInProgress() { return cfg && !over() && (state === 'play' || state === 'ready' || state === 'place'); }
 function hasSavedGame() { return !!readSave(); }
@@ -1258,6 +1398,7 @@ function clearInputState() {
   held.length = 0; pending = null; shiftDown = false;
   if (typeof canvasPointers !== 'undefined') canvasPointers.clear();
   pinch = null; pinchUsed = false;
+  armedMove = null;
 }
 function pauseGameplay() {
   if (state === 'play' && !pausedAt) pausedAt = performance.now();
@@ -1267,6 +1408,7 @@ function pauseGameplay() {
   saveNow();
 }
 function openMenu() {
+  if (mode === 'egitim' && !tutorial) { mode = 'kampanya'; stage = Math.min(unlocked, STAGES.length - 1); }
   if ($('start').classList.contains('show')) { pauseGameplay(); return; }
   if ($('msg').classList.contains('show')) return;
   pauseGameplay();
@@ -1275,14 +1417,18 @@ function openMenu() {
   fillStageSelect();
   $('hint').classList.remove('show');
   $('start').classList.add('show');
+  experience?.hideTutorial();
 }
 function closeMenu() {
+  lifecyclePaused = false;
   document.activeElement?.blur?.();
   $('start').classList.remove('show');
   delete $('start').dataset.paused;
   if (pausedAt) { startTime += performance.now() - pausedAt; pausedAt = 0; }
   if (state === 'place') showHint(true);
   else scheduleSave(600);
+  renderExperience();
+  showTutorialStep();
 }
 function startFromMenu(fresh) {
   ac(); document.activeElement?.blur?.();
@@ -1307,6 +1453,8 @@ function continueSavedGame() {
   if (!snap) { toast('Kayıtlı oyun bulunamadı', 'bad'); updateContinueUi(); return; }
   ac(); document.activeElement?.blur?.();
   mode = snap.mode; stage = snap.stage;
+  tutorial = null; experience?.hideTutorial();
+  dayKey = snap.dayKey; runId = snap.runId || makeRunId();
   store.set('mt3d-v1-mode', mode);
   menuTab = mode === 'kampanya' ? 'kampanya' : 'serbest';
   pausedAt = 0; delete $('start').dataset.paused;
@@ -1318,16 +1466,22 @@ function continueSavedGame() {
 
 function newGame() {
   gen++;
+  if (mode === 'egitim' && !tutorial) { mode = 'kampanya'; stage = 0; dayKey = null; }
+  lifecyclePaused = false;
+  experience?.dismissRewards();
+  if (tutorial) tutorial.step = 0;
   if (!bootPreview) clearSave();
   if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; scanResolve = null; }
   pending = null; held.length = 0; padHold = null; // don't carry a key press from the menu/previous game into the new one
-  startPos = null; lastStable = null;
+  startPos = null; lastStable = null; runId = makeRunId(); runFlags = 0; armedMove = null;
   const urlTheme = new URLSearchParams(location.search).get('tema');
-  cfg = isCampaign() ? { ...STAGES[stage] } : { ...FREE[mode], theme: THEMES[urlTheme] ? urlTheme : 'meadow' };
+  cfg = isCampaign() ? { ...STAGES[stage] } : mode === 'gunluk' ? { ...PROGRESS.dailyChallenge(dayKey || PROGRESS.utcDay()).cfg }
+    : mode === 'egitim' ? { w: 5, d: 5, m: 3, theme: 'meadow' }
+    : { ...FREE[mode], theme: THEMES[urlTheme] ? urlTheme : 'meadow' };
   pausedAt = 0;
-  $('lvlName').textContent = isCampaign() ? `Bölüm ${stage + 1}` : `Serbest · ${FREE_INFO[mode][1]}`;
+  $('lvlName').textContent = isCampaign() ? `${stage + 1}. ${STAGES[stage].title}` : FREE_INFO[mode][1];
   $('lvlSub').textContent = `${THEMES[cfg.theme].name} · ${cfg.w}×${cfg.d}`;
-  field.clear();
+  disposeTransientTree(field); field.clear();
   decorate(THEMES[cfg.theme], cfg.w, cfg.d);
   applyTheme(THEMES[cfg.theme]);
   fx.forEach(f => f.dispose()); fx = []; pops = [];
@@ -1352,6 +1506,7 @@ function newGame() {
   // Placement phase: the player picks where the character parachutes in (like the first click
   // in classic minesweeper). Mines are only laid once the drop zone is chosen.
   sel = { x: Math.floor(cfg.w / 2), z: Math.floor(cfg.d / 2) };
+  if (tutorial) sel = { x: 2, z: 3 };
   P = { x: sel.x, z: sel.z, px: sel.x, pz: sel.z, dir: [0, 1], moving: false, kind: 'walk', t: 0, dur: 0.2, from: new THREE.Vector3(), to: new THREE.Vector3(),
         yaw: 0, phase: 0, dead: false, vy: 0, stun: 0, dance: 0, scan: 0 };
   player.position.set(wx(sel.x), HOVER_Y, wz(sel.z));
@@ -1364,13 +1519,18 @@ function newGame() {
   lastHud = {}; $('padFlagLbl').textContent = 'İniş';
   updateHud();
   showHint(true);
-  if (isCampaign()) banner(`Bölüm ${stage + 1}`, `${theme.name} · ${cfg.m} mayın`);
-  else banner('Serbest Oyun', `${cfg.w}×${cfg.d} · ${cfg.m} mayın`);
+  if (isCampaign()) banner(STAGES[stage].title, STAGES[stage].objective.label);
+  else banner(FREE_INFO[mode][1], mode === 'gunluk' ? `${dayKey} · aynı günlük tarla` : `${cfg.w}×${cfg.d} · ${cfg.m} mayın`);
+  $('hint').innerHTML = mode === 'gunluk' ? '☀️ Günlük görevde iniş alanı sabittir. Başlamak için <b>İniş</b> düğmesine dokun.'
+    : '🪂 İniş noktasını seç — <b>dokun / tıkla</b> ya da <kbd>Oklar</kbd> + <kbd>Boşluk</kbd>. Yeşil alan güvenli.';
+  applySkin(); renderExperience(); showTutorialStep();
 }
 
 // Apply a validated snapshot on top of the freshly built board. newGame() already created
 // the tessellation/theme, so this only repaints cells, restores counters and the player.
 function applyRestoredState(s) {
+  dayKey = s.dayKey; runId = s.runId || runId;
+  runFlags = s.flagsPlaced || 0;
   startPos = { x: s.start.x, z: s.start.z };
   if (THEMES[s.cfg.theme] && s.cfg.theme !== cfg.theme) {
     cfg.theme = s.cfg.theme;
@@ -1421,16 +1581,19 @@ function applyRestoredState(s) {
 }
 
 function moveSel([dx, dz]) {
+  if (tutorial || mode === 'gunluk') return;
   sel.x = Math.max(0, Math.min(cfg.w - 1, sel.x + dx));
   sel.z = Math.max(0, Math.min(cfg.d - 1, sel.z + dz));
   sfx.step();
 }
 function confirmDrop() {
   if (state !== 'place' || $('start').classList.contains('show')) return;
+  if (tutorial) sel = { x: 2, z: 3 };
+  if (mode === 'gunluk') sel = { x: Math.floor(cfg.w / 2), z: Math.floor(cfg.d / 2) };
   const c = cellAt(sel.x, sel.z);
   if (!c) return;
   startPos = { x: c.x, z: c.z };
-  placeMines(c);
+  if (!placeMines(c)) { toast('Tarla hazırlanamadı. Yeniden iniş yap.', 'bad'); return; }
   state = 'drop';
   P.x = P.px = c.x; P.z = P.pz = c.z; P.vy = -0.5; P.dir = [0, -1];
   showHint(false); $('padFlagLbl').textContent = 'Bayrak';
@@ -1450,6 +1613,7 @@ function land() {
   startTimerIfNeeded();
   checkWin();
   scheduleSave(400);
+  tutorialAction('land');
 }
 let hintT;
 function showHint(on) {
@@ -1469,18 +1633,25 @@ function allSafeReachable(start) {
   return seen.size === grid.length - cfg.m;
 }
 function placeMines(safe) {
+  if (tutorial) {
+    for (const c of grid) c.mine = c.z === 0 && c.x >= 1 && c.x <= 3;
+    for (const c of grid) c.n = c.nb.filter(o => o.mine).length;
+    return true;
+  }
+  const random = mode === 'gunluk' ? PROGRESS.seededRandom(PROGRESS.dailyChallenge(dayKey).seed ^ (safe.z * cfg.w + safe.x)) : Math.random;
   const banned = new Set([safe, ...safe.nb]);
   const pool = grid.filter(c => !banned.has(c));
   for (let attempt = 0; attempt < 500; attempt++) {
     pool.forEach(c => c.mine = false);
     for (let i = 0; i < cfg.m; i++) {
-      const j = i + Math.floor(Math.random() * (pool.length - i));
+      const j = i + Math.floor(random() * (pool.length - i));
       [pool[i], pool[j]] = [pool[j], pool[i]];
       pool[i].mine = true;
     }
     if (allSafeReachable(safe)) break;
   }
   for (const c of grid) c.n = c.nb.filter(o => o.mine).length;
+  return allSafeReachable(safe);
 }
 
 function paintRevealed(c, animate = true, delay = 0) {
@@ -1563,12 +1734,23 @@ const busy = () => over() || state === 'place' || state === 'drop' || P.moving |
 
 function tryMove([dx, dz], fresh, turnOnly) {
   if (busy() || (!dx && !dz)) return;
+  if (tutorial) {
+    const target = LESSONS[tutorial.step]?.to;
+    if (!target || P.x + dx !== target[0] || P.z + dz !== target[1]) { showTutorialStep(); return; }
+  }
   P.dir = [dx, dz];
   if (turnOnly) return;
   const c = cellAt(P.x + dx, P.z + dz);
   if (!c || c.flagged) { if (fresh && c && c.flagged) toast('Önünde bayrak var'); return; }
   const known = c.revealed || c.crater;
   if (!known && !fresh) return;
+  if (!known && settings.confirmUnknown && !tutorial) {
+    if (!armedMove || armedMove.x !== c.x || armedMove.z !== c.z || performance.now() > armedMove.until) {
+      armedMove = { x: c.x, z: c.z, until: performance.now() + 3000 };
+      toast('Bilinmeyen kare: aynı yöne yeniden dokun.'); haptic(8); return;
+    }
+  }
+  armedMove = null;
   startTimerIfNeeded();
   P.moving = true; P.kind = 'walk'; P.t = 0; P.dur = dx && dz ? 0.27 : 0.2;  // diagonal step is longer
   P.from.set(wx(P.x), REV_Y, wz(P.z));
@@ -1577,8 +1759,8 @@ function tryMove([dx, dz], fresh, turnOnly) {
 }
 function arrive() {
   const c = cellAt(P.x, P.z);
-  sfx.step(); dust(player.position);
-  if (c.revealed || c.crater) { scheduleSave(); return; }
+  sfx.step(); haptic(6); dust(player.position);
+  if (c.revealed || c.crater) { scheduleSave(); tutorialAction('move'); return; }
   if (c.mine) return hitMine(c, true);
   const n = flood(c);
   n > 1 ? sfx.flood() : sfx.pop();
@@ -1590,20 +1772,25 @@ function setFlag(c, on) {
   if (c.flagged === on) return;
   c.flagged = on; flags += on ? 1 : -1;
   if (on) { c.flagObj = makeFlag(); c.flagObj.position.set(wx(c.x), HID_Y, wz(c.z)); field.add(c.flagObj); }
-  else { field.remove(c.flagObj); c.flagObj = null; }
+  else { disposeTransientTree(c.flagObj); field.remove(c.flagObj); c.flagObj = null; }
 }
 function toggleFlag() {
   if (busy()) return;
+  if (tutorial && tutorial.step !== 3) { showTutorialStep(); return; }
   const c = cellAt(P.x + P.dir[0], P.z + P.dir[1]);
   if (!c || c.revealed || c.crater) return;
   setFlag(c, !c.flagged);
+  if (c.flagged) runFlags++;
+  armedMove = null; haptic(15);
   c.flagged ? sfx.flag() : sfx.unflag();
   updateHud();
   scheduleSave();
+  tutorialAction('flag');
 }
 
 function chord() {
   if (busy()) return;
+  if (tutorial && tutorial.step !== 7) { showTutorialStep(); return; }
   const c = cellAt(P.x, P.z);
   const known = c.nb.filter(o => o.flagged || o.crater).length;
   if (!c.n || known !== c.n) { sfx.error(); toast(c.n ? `Önce ${c.n} bayrak koymalısın` : 'Burada açılacak bir şey yok'); return; }
@@ -1615,6 +1802,7 @@ function chord() {
   }
   if (opened) sfx.flood();
   scheduleSave();
+  tutorialAction('chord');
   checkWin();
 }
 
@@ -1629,6 +1817,7 @@ function flushPendingScan() {
 }
 function scan(instant = false) {
   if (busy()) return;
+  if (tutorial && tutorial.step !== 5) { showTutorialStep(); return; }
   const c = cellAt(P.x + P.dir[0], P.z + P.dir[1]);
   if (!c || c.revealed || c.crater) { sfx.error(); toast('Taranacak bilinmeyen kare yok'); return; }
   if (charges <= 0) { sfx.error(); toast('Dedektör hakkın bitti'); return; }
@@ -1652,6 +1841,7 @@ function scan(instant = false) {
     setTimeout(() => { if (myGen === gen) led.set('#7cf').multiplyScalar(2.5); }, 900);
     updateHud();
     scheduleSave(1000);
+    haptic([12, 35, 12]); tutorialAction('scan');
     checkWin();
   };
   scanResolve = resolve;
@@ -1666,6 +1856,7 @@ function hitMine(c, stepped) {
   const at = new THREE.Vector3(wx(c.x), 0.35, wz(c.z));
   explosion(at);
   sfx.boom(); shake = 0.6;
+  haptic([70, 40, 110]);
   lives--; updateHud(); bump($('hurt'), 'go');
   if (lives <= 0) return gameOver(c);
   sfx.hurt();
@@ -1687,11 +1878,14 @@ function hitMine(c, stepped) {
 }
 
 function checkWin() {
+  if (mode === 'egitim') return;
   if (over() || revealed !== grid.length - cfg.m) return;
   state = 'won'; clearInterval(timerId);
   const myGen = gen;
   const t = Math.max(0, Math.floor(((pausedAt || performance.now()) - startTime) / 1000));
   const stars = lives;
+  const rewards = recordRun(true, t);
+  haptic([25, 50, 25, 50, 60]);
   // Progress is committed synchronously so closing the app during the result delay cannot lose it.
   clearSave();
   for (const c of grid) if (c.mine && !c.crater && !c.flagged) setFlag(c, true);
@@ -1703,6 +1897,8 @@ function checkWin() {
     starsByStage[stage] = Math.max(starsByStage[stage] || 0, stars); store.set('mt3d-v1-stars', starsByStage);
     last = stage === STAGES.length - 1;
     if (!last && stage + 1 > unlocked) { unlocked = stage + 1; store.set('mt3d-v1-unlocked', unlocked); }
+  } else if (mode === 'gunluk') {
+    freeBest = t; freeRec = false;
   } else {
     const k = 'mt3d-v1-best-' + mode;
     const best = store.get(k, null);
@@ -1721,14 +1917,18 @@ function checkWin() {
         last ? ['Tekrar oyna', newGame] : ['Sonraki bölüm ▶', () => { stage++; newGame(); }],
         last ? null : ['↻ Tekrar', newGame], stats);
     } else {
-      showMsg('Kazandın! 🎉', freeRec && freeHadBest ? 'Yeni rekor!' : 'Tarla temizlendi.', stars, ['Tekrar oyna', newGame], null,
+      showMsg(mode === 'gunluk' ? 'Günlük görev tamam! ☀️' : 'Kazandın! 🎉', mode === 'gunluk' ? rewards?.note === 'daily-outside-retention'
+        ? 'Bu günün ödül geçmişi süresi doldu. Sonuç istatistiklerine eklendi; altın verilmedi.'
+        : `${dayKey} · Günlük zafer ve hedef ödülleri birer kez verilir.` : freeRec && freeHadBest ? 'Yeni rekor!' : 'Tarla temizlendi.', stars, ['Tekrar oyna', newGame], null,
         [[fmtTime(t), 'Süre'], [fmtTime(freeBest), freeRec ? '🏆 Rekor' : 'En iyi', freeRec], [`${lives}/${LIVES}`, 'Can']]);
     }
+    if (rewards && (rewards.coins > 0 || rewards.achievements.length || rewards.firstClear)) experience?.showRewards(rewards);
   }, reduceMotion ? 400 : 1800);
 }
 
 function gameOver(hit) {
   state = 'lost'; clearInterval(timerId);
+  recordRun(false, currentElapsed());
   const myGen = gen;
   clearSave();
   let i = 0;
@@ -1762,8 +1962,9 @@ function showMsg(title, text, stars, b1, b2, stats = []) {
 }
 
 // ================= Effects =================
-function addFx(obj, update) { scene.add(obj); fx.push({ obj, update, dispose: () => scene.remove(obj) }); }
+function addFx(obj, update) { scene.add(obj); fx.push({ obj, update, dispose: () => { scene.remove(obj); disposeTransientTree(obj); } }); }
 function particle(pos, color, vel, life, opts = {}) {
+  if (Math.random() > qv().fx) return;
   const mat = opts.lit
     ? new THREE.MeshStandardMaterial({ color, transparent: true, roughness: 1, flatShading: true, depthWrite: false })
     : new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(opts.glow ?? 1), transparent: true, side: THREE.DoubleSide, depthWrite: false });
@@ -1796,6 +1997,7 @@ function explosion(at) {
   let t = 0; addFx(light, dt => { t += dt; light.intensity = Math.max(0, 40 * (1 - t / 0.5)); return t < 0.5; });
 }
 function dust(pos) {
+  if (reduceMotion) return;
   const col = theme.snow ? '#ffffff' : night ? '#6b6b6b' : '#d8c8a8';
   for (let i = 0; i < 6; i++) particle(pos.clone().add(new THREE.Vector3(0, 0.05, 0)), col,
     new THREE.Vector3((Math.random() - .5) * 1.2, 0.4 + Math.random() * 0.4, (Math.random() - .5) * 1.2), 0.5,
@@ -1931,7 +2133,7 @@ canvas.addEventListener('pointermove', e => {
       return;
     }
   }
-  if (state !== 'place' || pinchUsed || canvasPointers.size > 1) return;
+  if (state !== 'place' || tutorial || mode === 'gunluk' || pinchUsed || canvasPointers.size > 1) return;
   const c = pickTile(e); if (c) sel = { x: c.x, z: c.z };
   canvas.style.cursor = c ? 'pointer' : '';
 });
@@ -1958,8 +2160,7 @@ function toggleNight() {
   applyTheme(theme);
 }
 function toggleMute() {
-  muted = !muted; store.set('mt3d-v1-muted', muted);
-  ui.muteBtn.textContent = muted ? '🔇' : '🔊';
+  updateSettings({ sound: muted });
 }
 ui.muteBtn.textContent = muted ? '🔇' : '🔊';
 const blurAfter = fn => e => { e.currentTarget.blur(); fn(); };
@@ -1975,6 +2176,7 @@ function setQuality(q) {
   quality = q; store.set(DATA.QUALITY_KEY, q);
   applyQuality();
   toast(`Kalite: ${q === 'low' ? 'Düşük' : q === 'medium' ? 'Orta' : 'Yüksek'}`);
+  renderExperience();
 }
 document.querySelectorAll('.quality [data-q]').forEach(b => { b.onclick = blurAfter(() => setQuality(b.dataset.q)); });
 updateQualityUi();
@@ -1989,13 +2191,7 @@ $('tabCamp').onclick = () => { menuTab = 'kampanya'; fillStageSelect(); };
 $('tabFree').onclick = () => { menuTab = 'serbest'; fillStageSelect(); };
 $('msgMenu').onclick = () => { $('msg').classList.remove('show'); delete $('start').dataset.paused; openMenu(); };
 $('resetBtn').onclick = () => {
-  if (!confirm('Bütün bölüm ilerlemesi ve yıldızlar silinsin mi?')) return;
-  clearSave();
-  unlocked = 0; stage = 0; starsByStage = {}; store.set('mt3d-v1-unlocked', 0); store.set('mt3d-v1-stars', {});
-  mode = 'kampanya'; store.set('mt3d-v1-mode', mode); menuTab = 'kampanya';
-  newGame();
-  delete $('start').dataset.paused;
-  fillStageSelect();
+  resetAllProgress();
 };
 
 // ================= Loop =================
@@ -2176,11 +2372,34 @@ fillStageSelect();
 newGame();
 bootPreview = false;
 applyQuality();
+experience = window.MT3D_EXPERIENCE.mount({
+  getState: () => ({ profile, catalog: STAGES, skins: PROGRESS.SKINS, mode, stageIndex: stage,
+    settings: { ...settings, quality }, daily: PROGRESS.dailyChallenge(PROGRESS.utcDay()),
+    paused: $('start').classList.contains('show'), inRun: gameInProgress() && !!startPos }),
+  launchStage: index => Number.isInteger(index) && index >= 0 && index <= unlocked && index < STAGES.length ? beginAdventure('kampanya', index) : false,
+  launchDaily: () => beginAdventure('gunluk'),
+  launchTutorial: () => beginAdventure('egitim', 0, true),
+  exitTutorial,
+  resumeRun: () => { if (gameInProgress() && $('start').dataset.paused) startFromMenu(false); else continueSavedGame(); },
+  buySkin: id => {
+    const result = PROGRESS.buySkin(profile, id);
+    if (result.ok) { profile = result.profile; saveProfile(); haptic(20); }
+    else toast(({ 'insufficient-coins': 'Bu görünüm için yeterli altının yok.', 'already-owned': 'Bu görünüm zaten sende.', 'unknown-skin': 'Görünüm bulunamadı.' })[result.reason] || 'Bu görünüm şu anda alınamıyor.', 'bad');
+    return result.ok;
+  },
+  equipSkin: id => {
+    const result = PROGRESS.equipSkin(profile, id);
+    if (result.ok) { profile = result.profile; saveProfile(); applySkin(); haptic(12); }
+    return result.ok;
+  },
+  updateSettings,
+  resetProgress: resetAllProgress,
+});
+updateSettings(settings); applySkin(); renderExperience();
 
 // ================= App lifecycle / native bridge =================
 // pause() saves and shows the menu. resume() is deliberately a no-op: coming back from the
 // background must not restart the timer or continue by itself; the user picks "Devam et".
-let lifecyclePaused = false;
 function lifecyclePause() {
   if (lifecyclePaused) return;
   lifecyclePaused = true;
@@ -2206,12 +2425,21 @@ window.mt3dApp = Object.freeze({
     return true;
   },
   back() {
+    if (experience?.dismissRewards()) return true;
     if ($('start').classList.contains('show')) return false;
     $('msg').classList.remove('show');
     openMenu();
     return true;
   },
   resume() { return false; }, // no automatic resume; an explicit user choice is required
+});
+canvas.addEventListener('webglcontextlost', event => {
+  event.preventDefault(); lifecyclePause();
+  experience?.announce('Görüntü kesildi. Oyun duraklatıldı; kayıt korundu.');
+});
+canvas.addEventListener('webglcontextrestored', () => {
+  applyQuality(); openMenu();
+  experience?.announce('Görüntü geri yüklendi. Menüden devam edebilirsin.');
 });
 loop();
 
